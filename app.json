@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "بيت القدرات",
+    "slug": "bait-alqudrat",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/app-icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/app-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.baitalqudrat.app"
+    },
+    "android": {
+      "package": "com.baitalqudrat.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/app-icon.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#ffffff",
+          "sounds": [
+            "./assets/notification-sound.wav"
+          ]
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "3764ec2d-289e-4069-afa0-012667de675b"
+      },
+      "moyasarPublishableKey": "pk_test_ijJF2iPkzA26ooHsaBAjPugoHUzv9fjSWTYVYiHZ"
+    },
+    "owner": "ramii90"
+  }
+}
