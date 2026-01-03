@@ -11,7 +11,7 @@ interface User {
   username?: string;
   email: string;
   phone: string;
-  type: 'student' | 'parent';
+  type: 'student' | 'parent' | 'admin';
   push_token?: string;
 }
 
