@@ -194,7 +194,7 @@ export default function PaymentsPage() {
                         </td>
                         <td className="py-4 px-4">
                           <span className="font-bold text-gray-900">
-                            {parseFloat(payment.amount).toLocaleString()} {payment.currency}
+                            {parseFloat(String(payment.amount)).toLocaleString()} {payment.currency}
                           </span>
                         </td>
                         <td className="py-4 px-4">
