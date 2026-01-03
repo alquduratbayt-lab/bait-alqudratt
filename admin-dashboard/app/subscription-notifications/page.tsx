@@ -103,7 +103,7 @@ export default function SubscriptionNotificationsPage() {
         notifications
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error:', error);
       setResult({ success: false, error: error.message });
     } finally {
