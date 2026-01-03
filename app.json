@@ -38,11 +38,11 @@
       ]
     ],
     "extra": {
+      "moyasarPublishableKey": "pk_test_ijJF2iPkzA26ooHsaBAjPugoHUzv9fjSWTYVYiHZ",
       "eas": {
-        "projectId": "3764ec2d-289e-4069-afa0-012667de675b"
-      },
-      "moyasarPublishableKey": "pk_test_ijJF2iPkzA26ooHsaBAjPugoHUzv9fjSWTYVYiHZ"
+        "projectId": "0d374624-39fd-4970-8d41-07ce1a3538a3"
+      }
     },
-    "owner": "ramii90"
+    "owner": "alquduratbayt"
   }
 }
