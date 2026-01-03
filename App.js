@@ -62,10 +62,31 @@ export default function App() {
   const responseListener = useRef();
 
   useEffect(() => {
-    // طلب إذن الإشعارات فور فتح التطبيق
+    // طلب إذن الإشعارات وتحديث token فور فتح التطبيق
     const requestNotificationPermissions = async () => {
-      const { registerForPushNotificationsAsync } = require('./src/lib/pushNotifications');
-      await registerForPushNotificationsAsync();
+      const { registerForPushNotificationsAsync, savePushToken } = require('./src/lib/pushNotifications');
+      const { supabase } = require('./src/lib/supabase');
+      
+      // الحصول على token جديد
+      const token = await registerForPushNotificationsAsync();
+      
+      // إذا كان المستخدم مسجل دخول، حفظ الـ token
+      if (token) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          // البحث عن المستخدم في قاعدة البيانات
+          const { data: userData } = await supabase
+            .from('users')
+            .select('id')
+            .eq('email', user.email)
+            .single();
+          
+          if (userData) {
+            await savePushToken(userData.id, token);
+            console.log('✅ Push token updated on app launch');
+          }
+        }
+      }
     };
     
     requestNotificationPermissions();
