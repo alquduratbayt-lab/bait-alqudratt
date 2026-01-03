@@ -129,11 +129,14 @@ export default function NotificationsPage() {
   };
 
   const getFilteredUsers = () => {
-    if (targetType === 'all') return users;
-    if (targetType === 'students') return users.filter(u => u.type === 'student');
-    if (targetType === 'parents') return users.filter(u => u.type === 'parent');
-    if (targetType === 'both') return users.filter(u => u.type === 'student' || u.type === 'parent');
-    return users;
+    // استبعاد admins من جميع الفئات
+    const nonAdminUsers = users.filter(u => u.type !== 'admin');
+    
+    if (targetType === 'all') return nonAdminUsers;
+    if (targetType === 'students') return nonAdminUsers.filter(u => u.type === 'student');
+    if (targetType === 'parents') return nonAdminUsers.filter(u => u.type === 'parent');
+    if (targetType === 'both') return nonAdminUsers.filter(u => u.type === 'student' || u.type === 'parent');
+    return nonAdminUsers;
   };
 
   const handleSendNotification = async () => {
