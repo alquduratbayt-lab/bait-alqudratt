@@ -90,13 +90,19 @@ export async function POST(request: NextRequest) {
       console.log('📥 API: Response data:', result);
 
       if (result.data) {
-        result.data.forEach((item: any) => {
+        result.data.forEach((item: any, index: number) => {
           if (item.status === 'ok') {
             successCount++;
-            console.log('✅ API: Notification sent successfully');
+            console.log('✅ API: Notification sent successfully to:', batch[index].to);
           } else {
             failedCount++;
-            console.error('❌ API: Push notification error:', item);
+            console.error('❌ API: Push notification error for token:', batch[index].to);
+            console.error('Error details:', item.message || item.details || 'Unknown error');
+            
+            // تسجيل أنواع الأخطاء الشائعة
+            if (item.details?.error === 'DeviceNotRegistered') {
+              console.warn('⚠️ Token is no longer valid (device unregistered)');
+            }
           }
         });
       } else {
