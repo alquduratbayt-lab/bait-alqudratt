@@ -167,7 +167,7 @@ export default function UsersPage() {
       } else {
         throw new Error(data.error || 'فشل حذف المستخدم');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting user:', error);
       alert('حدث خطأ أثناء حذف المستخدم: ' + (error.message || 'خطأ غير معروف'));
     } finally {
