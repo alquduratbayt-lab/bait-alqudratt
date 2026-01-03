@@ -154,21 +154,13 @@ export default function NotificationsPage() {
         return;
       }
 
-      // حفظ الإشعار في قاعدة البيانات
+      // تجهيز بيانات الإشعار
       const notificationData = {
         title,
         message,
         target_type: targetType,
-        target_users: targetUsers.map(u => u.id),
-        sent_count: targetUsers.length,
         created_at: new Date().toISOString(),
       };
-
-      const { error: dbError } = await supabase
-        .from('notifications')
-        .insert([notificationData]);
-
-      if (dbError) throw dbError;
 
       // إرسال Push Notifications للمستخدمين الذين لديهم push_token
       console.log('📊 Target users:', targetUsers.length);
@@ -205,12 +197,14 @@ export default function NotificationsPage() {
             pushResult = { success: result.success || 0, failed: result.failed || 0 };
             console.log(`✅ Push notifications result: ${pushResult.success} success, ${pushResult.failed} failed`);
           } else {
-            const error = await apiResponse.json();
-            console.error('❌ API Error:', error);
+            const errorText = await apiResponse.text();
+            console.error('❌ API Error:', apiResponse.status, errorText);
+            alert(`خطأ في إرسال الإشعار: ${errorText}`);
             pushResult = { success: 0, failed: tokens.length };
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error('❌ Failed to call push API:', error);
+          alert(`خطأ في الاتصال بالـ API: ${error.message}`);
           pushResult = { success: 0, failed: tokens.length };
         }
       } else {
