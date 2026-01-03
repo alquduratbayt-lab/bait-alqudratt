@@ -62,6 +62,14 @@ export default function App() {
   const responseListener = useRef();
 
   useEffect(() => {
+    // طلب إذن الإشعارات فور فتح التطبيق
+    const requestNotificationPermissions = async () => {
+      const { registerForPushNotificationsAsync } = require('./src/lib/pushNotifications');
+      await registerForPushNotificationsAsync();
+    };
+    
+    requestNotificationPermissions();
+
     // الاستماع للإشعارات الواردة
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
       console.log('Notification received:', notification);

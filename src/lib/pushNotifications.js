@@ -52,13 +52,15 @@ export async function registerForPushNotificationsAsync() {
     
     console.log('✅ Permission granted, getting push token...');
     
-    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-    console.log('🔑 Using projectId from config:', projectId);
+    // محاولة الحصول على projectId من Constants أو استخدام القيمة المباشرة
+    let projectId = Constants.expoConfig?.extra?.eas?.projectId;
     
+    // إذا لم يكن متوفراً، استخدم القيمة المباشرة (للـ production builds)
     if (!projectId) {
-      console.error('❌ No projectId found in app.json');
-      return;
+      projectId = Constants.manifest?.extra?.eas?.projectId || '0d374624-39fd-4970-8d41-07ce1a3538a3';
     }
+    
+    console.log('🔑 Using projectId:', projectId);
     
     try {
       token = (await Notifications.getExpoPushTokenAsync({
@@ -68,6 +70,7 @@ export async function registerForPushNotificationsAsync() {
       console.log('✅ Push token obtained:', token);
     } catch (error) {
       console.error('❌ Error getting push token:', error);
+      console.error('Error details:', JSON.stringify(error));
       return;
     }
   } else {
