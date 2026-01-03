@@ -16,7 +16,10 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.baitalqudrat.app"
+      "bundleIdentifier": "com.baitalqudrat.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.baitalqudrat.app",
@@ -26,16 +29,7 @@
       }
     },
     "plugins": [
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/notification-icon.png",
-          "color": "#ffffff",
-          "sounds": [
-            "./assets/notification-sound.wav"
-          ]
-        }
-      ]
+      "expo-notifications"
     ],
     "extra": {
       "moyasarPublishableKey": "pk_test_ijJF2iPkzA26ooHsaBAjPugoHUzv9fjSWTYVYiHZ",
