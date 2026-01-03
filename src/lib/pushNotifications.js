@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { supabase } from './supabase';
 
 // إعداد كيفية عرض الإشعارات
@@ -50,11 +51,18 @@ export async function registerForPushNotificationsAsync() {
     }
     
     console.log('✅ Permission granted, getting push token...');
-    console.log('🔑 Using projectId: 0d374624-39fd-4970-8d41-07ce1a3538a3');
+    
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+    console.log('🔑 Using projectId from config:', projectId);
+    
+    if (!projectId) {
+      console.error('❌ No projectId found in app.json');
+      return;
+    }
     
     try {
       token = (await Notifications.getExpoPushTokenAsync({
-        projectId: '0d374624-39fd-4970-8d41-07ce1a3538a3'
+        projectId: projectId
       })).data;
       
       console.log('✅ Push token obtained:', token);
