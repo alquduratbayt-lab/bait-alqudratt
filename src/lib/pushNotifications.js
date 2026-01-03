@@ -16,6 +16,10 @@ Notifications.setNotificationHandler({
 export async function registerForPushNotificationsAsync() {
   let token;
 
+  console.log('🔔 Starting push notification registration...');
+  console.log('📱 Platform:', Platform.OS);
+  console.log('📱 Is Device:', Device.isDevice);
+
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
       name: 'default',
@@ -26,26 +30,40 @@ export async function registerForPushNotificationsAsync() {
   }
 
   if (Device.isDevice) {
+    console.log('✅ Running on physical device');
+    
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    console.log('📋 Existing permission status:', existingStatus);
+    
     let finalStatus = existingStatus;
     
     if (existingStatus !== 'granted') {
+      console.log('🔐 Requesting notification permissions...');
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
+      console.log('📋 New permission status:', finalStatus);
     }
     
     if (finalStatus !== 'granted') {
-      console.log('Failed to get push token for push notification!');
+      console.log('❌ Failed to get push token - permission denied!');
       return;
     }
     
-    token = (await Notifications.getExpoPushTokenAsync({
-      projectId: '0d374624-39fd-4970-8d41-07ce1a3538a3'
-    })).data;
+    console.log('✅ Permission granted, getting push token...');
+    console.log('🔑 Using projectId: 0d374624-39fd-4970-8d41-07ce1a3538a3');
     
-    console.log('Push token:', token);
+    try {
+      token = (await Notifications.getExpoPushTokenAsync({
+        projectId: '0d374624-39fd-4970-8d41-07ce1a3538a3'
+      })).data;
+      
+      console.log('✅ Push token obtained:', token);
+    } catch (error) {
+      console.error('❌ Error getting push token:', error);
+      return;
+    }
   } else {
-    console.log('Must use physical device for Push Notifications');
+    console.log('❌ Must use physical device for Push Notifications');
   }
 
   return token;
