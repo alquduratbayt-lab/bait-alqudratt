@@ -220,12 +220,13 @@ export default function ParentHomeScreen({ navigation, route }) {
       console.log('Stats:', { completedLessons, totalVideos, completedExams });
       
       const examScores = progress
-        .filter(p => p.exam_score !== null && p.total_questions !== null)
+        .filter(p => p.exam_score !== null && p.total_questions !== null && p.total_questions > 0)
         .map(p => ({
           score: p.exam_score,
           total: p.total_questions,
           percentage: (p.exam_score / p.total_questions) * 100
-        }));
+        }))
+        .filter(exam => !isNaN(exam.percentage) && isFinite(exam.percentage));
       
       const averageScore = examScores.length > 0
         ? Math.round(examScores.reduce((sum, exam) => sum + exam.percentage, 0) / examScores.length)

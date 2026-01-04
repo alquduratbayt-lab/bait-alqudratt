@@ -539,23 +539,13 @@ export default function HomeScreen({ navigation }) {
                           </Text>
                         )}
                       </View>
-                      {countdownText ? (
+                      {countdownText && (
                         <View style={styles.countdownContainer}>
                           <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
                             <Circle cx={12} cy={12} r={10} stroke="#fff" strokeWidth={2} />
                             <Path d="M12 6v6l4 2" stroke="#fff" strokeWidth={2} strokeLinecap="round" />
                           </Svg>
                           <Text style={styles.countdownText}>{countdownText}</Text>
-                        </View>
-                      ) : (
-                        <View style={styles.timerContainer}>
-                          <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
-                            <Circle cx={12} cy={12} r={10} stroke="#fff" strokeWidth={2} />
-                            <Path d="M12 6v6l4 2" stroke="#fff" strokeWidth={2} strokeLinecap="round" />
-                          </Svg>
-                          <Text style={styles.timerText}>
-                            {formatTime(timer.hours)}:{formatTime(timer.minutes)}:{formatTime(timer.seconds)}
-                          </Text>
                         </View>
                       )}
                     </View>
