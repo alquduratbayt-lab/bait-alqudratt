@@ -68,6 +68,16 @@ const ParentIcon = () => (
   </Svg>
 );
 
+// دالة تحويل الأرقام العربية إلى إنجليزية
+const convertArabicToEnglish = (text) => {
+  const arabicNumbers = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  const englishNumbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+  
+  return text.replace(/[٠-٩]/g, (match) => {
+    return englishNumbers[arabicNumbers.indexOf(match)];
+  });
+};
+
 export default function LoginScreen({ navigation, route }) {
   const userType = route.params?.userType || 'student'; // 'student' or 'parent'
   const [phone, setPhone] = useState('');
@@ -279,10 +289,10 @@ export default function LoginScreen({ navigation, route }) {
             <Text style={styles.countryCode}>+966</Text>
             <TextInput
               style={styles.phoneInput}
-              placeholder="519496939 مثال"
+              placeholder="5XXXXXXXX"
               placeholderTextColor="#999"
               value={phone}
-              onChangeText={setPhone}
+              onChangeText={(text) => setPhone(convertArabicToEnglish(text))}
               keyboardType="phone-pad"
               maxLength={9}
               textAlign="right"
@@ -321,7 +331,12 @@ export default function LoginScreen({ navigation, route }) {
         </TouchableOpacity>
 
         {/* زر تسجيل الدخول */}
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+        <TouchableOpacity 
+          style={styles.loginButton} 
+          onPress={handleLogin}
+          activeOpacity={0.7}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Text style={styles.loginButtonText}>تسجيل الدخول</Text>
         </TouchableOpacity>
 

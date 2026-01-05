@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   TextInput,
   FlatList,
+  ScrollView,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
@@ -20,7 +21,10 @@ import { supabase } from '../lib/supabase';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { askDeepSeek } from '../lib/deepseekService';
 import { canAccessAITeacher } from '../lib/subscriptionService';
+import { getStudentProgress, getSubscriptionInfo } from '../lib/aiDataService';
 import CustomAlert from '../components/CustomAlert';
+import ProgressCard from '../components/ProgressCard';
+import SubscriptionCard from '../components/SubscriptionCard';
 
 // أيقونة السهم للخلف
 const BackIcon = () => (
@@ -55,11 +59,18 @@ const RobotIcon = () => (
   </Svg>
 );
 
+// أيقونة البرق للرسائل السريعة
+const LightningIcon = () => (
+  <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+    <Path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z" fill="#2196F3" />
+  </Svg>
+);
+
 export default function AITeacherScreen({ navigation }) {
   const [messages, setMessages] = useState([
     {
       id: '1',
-      text: 'مرحباً! أنا مدرسك الخاص 🤖\nكيف يمكنني مساعدتك اليوم؟\n\nيمكنك كتابة سؤالك أو تصوير المعادلة بالكاميرا 📷',
+      text: 'مرحباً! أنا مدرسك الخاص 🤖\nكيف يمكنني مساعدتك اليوم؟\n\nاكتب سؤالك وسأساعدك في حله خطوة بخطوة ✍️',
       isAI: true,
       timestamp: new Date(),
     }
@@ -69,7 +80,18 @@ export default function AITeacherScreen({ navigation }) {
   const [selectedImage, setSelectedImage] = useState(null);
   const [hasAccess, setHasAccess] = useState(null);
   const [alertVisible, setAlertVisible] = useState(false);
+  const [showQuickMessages, setShowQuickMessages] = useState(true);
+  const [userId, setUserId] = useState(null);
   const flatListRef = useRef(null);
+
+  // الرسائل السريعة
+  const quickMessages = [
+    { id: '1', text: 'كيف تقدمي في الدروس؟', icon: '📊' },
+    { id: '2', text: 'ما هو اشتراكي؟', icon: '📦' },
+    { id: '3', text: 'أعطني نصائح لتحسين أدائي', icon: '💡' },
+    { id: '4', text: 'كيف أحل معادلة من الدرجة الثانية؟', icon: '🔢' },
+    { id: '5', text: 'اشرح لي التشبيه في اللغة العربية', icon: '📝' },
+  ];
 
   useFocusEffect(
     React.useCallback(() => {
@@ -79,6 +101,7 @@ export default function AITeacherScreen({ navigation }) {
 
   useEffect(() => {
     checkAccess();
+    getUserId();
     // التمرير للأسفل عند إضافة رسالة جديدة
     if (messages.length > 0) {
       setTimeout(() => {
@@ -86,6 +109,17 @@ export default function AITeacherScreen({ navigation }) {
       }, 100);
     }
   }, [messages]);
+
+  const getUserId = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+      }
+    } catch (error) {
+      console.error('Error getting user ID:', error);
+    }
+  };
 
   const checkAccess = async () => {
     const access = await canAccessAITeacher();
@@ -114,12 +148,120 @@ export default function AITeacherScreen({ navigation }) {
     }
   };
 
-  const sendMessage = async () => {
-    if (!inputText.trim() && !selectedImage) return;
+  const sendQuickMessage = async (messageText) => {
+    // لا نخفي الرسائل السريعة - تبقى ظاهرة
+    
+    // التحقق من نوع السؤال
+    if (messageText === 'كيف تقدمي في الدروس؟') {
+      await showProgressCard();
+    } else if (messageText === 'ما هو اشتراكي؟') {
+      await showSubscriptionCard();
+    } else {
+      // أسئلة عادية → إرسال للذكاء الاصطناعي
+      setInputText(messageText);
+      setTimeout(() => {
+        handleSend(messageText);
+      }, 100);
+    }
+  };
+
+  const showProgressCard = async () => {
+    if (!userId) {
+      Alert.alert('خطأ', 'لم يتم العثور على معرف المستخدم');
+      return;
+    }
+
+    // إضافة رسالة المستخدم
+    const userMessage = {
+      id: Date.now().toString(),
+      text: 'كيف تقدمي في الدروس؟',
+      isAI: false,
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, userMessage]);
+
+    // إظهار مؤشر التحميل
+    setIsLoading(true);
+
+    try {
+      // جلب البيانات من Supabase
+      const progressData = await getStudentProgress(userId);
+      
+      // إضافة كارت التقدم
+      const cardMessage = {
+        id: (Date.now() + 1).toString(),
+        type: 'progress_card',
+        data: progressData,
+        timestamp: new Date(),
+      };
+      
+      setMessages(prev => [...prev, cardMessage]);
+    } catch (error) {
+      console.error('Error showing progress card:', error);
+      const errorMessage = {
+        id: (Date.now() + 1).toString(),
+        text: 'عذراً، حدث خطأ في جلب بيانات التقدم.',
+        isAI: true,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const showSubscriptionCard = async () => {
+    if (!userId) {
+      Alert.alert('خطأ', 'لم يتم العثور على معرف المستخدم');
+      return;
+    }
+
+    // إضافة رسالة المستخدم
+    const userMessage = {
+      id: Date.now().toString(),
+      text: 'ما هو اشتراكي؟',
+      isAI: false,
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, userMessage]);
+
+    // إظهار مؤشر التحميل
+    setIsLoading(true);
+
+    try {
+      // جلب البيانات من Supabase
+      const subscriptionData = await getSubscriptionInfo(userId);
+      
+      // إضافة كارت الاشتراك
+      const cardMessage = {
+        id: (Date.now() + 1).toString(),
+        type: 'subscription_card',
+        data: subscriptionData,
+        timestamp: new Date(),
+      };
+      
+      setMessages(prev => [...prev, cardMessage]);
+    } catch (error) {
+      console.error('Error showing subscription card:', error);
+      const errorMessage = {
+        id: (Date.now() + 1).toString(),
+        text: 'عذراً، حدث خطأ في جلب بيانات الاشتراك.',
+        isAI: true,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSend = async (quickMessageText = null) => {
+    const messageToSend = quickMessageText || inputText;
+    if (!messageToSend.trim() && !selectedImage) return;
 
     const userMessage = {
       id: Date.now().toString(),
-      text: inputText || 'صورة معادلة',
+      text: messageToSend || 'صورة معادلة',
       isAI: false,
       timestamp: new Date(),
       image: selectedImage,
@@ -177,32 +319,54 @@ export default function AITeacherScreen({ navigation }) {
     }
   };
 
-  const renderMessage = ({ item }) => (
-    <View style={[
-      styles.messageContainer,
-      item.isAI ? styles.aiMessageContainer : styles.userMessageContainer
-    ]}>
-      {item.isAI && (
-        <View style={styles.aiAvatar}>
-          <RobotIcon />
-        </View>
-      )}
+  const renderMessage = ({ item }) => {
+    // عرض كارت التقدم
+    if (item.type === 'progress_card') {
+      return (
+        <ProgressCard 
+          data={item.data}
+        />
+      );
+    }
+
+    // عرض كارت الاشتراك
+    if (item.type === 'subscription_card') {
+      return (
+        <SubscriptionCard 
+          data={item.data}
+          onRenew={() => navigation.navigate('Subscriptions')}
+        />
+      );
+    }
+
+    // رسالة عادية
+    return (
       <View style={[
-        styles.messageBubble,
-        item.isAI ? styles.aiMessageBubble : styles.userMessageBubble
+        styles.messageContainer,
+        item.isAI ? styles.aiMessageContainer : styles.userMessageContainer
       ]}>
-        {item.image && (
-          <Image source={{ uri: item.image }} style={styles.messageImage} />
+        {item.isAI && (
+          <View style={styles.aiAvatar}>
+            <RobotIcon />
+          </View>
         )}
-        <Text style={[
-          styles.messageText,
-          item.isAI ? styles.aiMessageText : styles.userMessageText
+        <View style={[
+          styles.messageBubble,
+          item.isAI ? styles.aiMessageBubble : styles.userMessageBubble
         ]}>
-          {item.text}
-        </Text>
+          {item.image && (
+            <Image source={{ uri: item.image }} style={styles.messageImage} />
+          )}
+          <Text style={[
+            styles.messageText,
+            item.isAI ? styles.aiMessageText : styles.userMessageText
+          ]}>
+            {item.text}
+          </Text>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   if (hasAccess === null) {
     return (
@@ -286,12 +450,34 @@ export default function AITeacherScreen({ navigation }) {
         </View>
       )}
 
+      {/* الرسائل السريعة */}
+      {showQuickMessages && (
+        <View style={styles.quickMessagesContainer}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.quickMessagesScroll}
+          >
+            {quickMessages.map((msg) => (
+              <TouchableOpacity
+                key={msg.id}
+                style={styles.quickMessageButton}
+                onPress={() => sendQuickMessage(msg.text)}
+              >
+                <Text style={styles.quickMessageIcon}>{msg.icon}</Text>
+                <Text style={styles.quickMessageText}>{msg.text}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
       {/* حقل الإدخال */}
       <View style={styles.inputContainer}>
         <TouchableOpacity 
-          style={[styles.sendButton, (!inputText.trim() && !selectedImage) && styles.sendButtonDisabled]}
-          onPress={sendMessage}
-          disabled={(!inputText.trim() && !selectedImage) || isLoading}
+          style={[styles.sendButton, (!inputText.trim() || isLoading) && styles.sendButtonDisabled]}
+          onPress={() => handleSend()}
+          disabled={!inputText.trim() || isLoading}
         >
           <SendIcon />
         </TouchableOpacity>
@@ -306,12 +492,20 @@ export default function AITeacherScreen({ navigation }) {
           editable={!isLoading}
         />
         <TouchableOpacity 
+          style={styles.quickMessagesToggle}
+          onPress={() => setShowQuickMessages(!showQuickMessages)}
+        >
+          <LightningIcon />
+        </TouchableOpacity>
+        {/* زر الكاميرا معطل مؤقتاً - DeepSeek لا يدعم الصور
+        <TouchableOpacity 
           style={styles.cameraButton}
           onPress={pickImage}
           disabled={isLoading}
         >
           <CameraIcon />
         </TouchableOpacity>
+        */}
       </View>
     </KeyboardAvoidingView>
   );
@@ -414,14 +608,49 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 14,
   },
+  quickMessagesContainer: {
+    backgroundColor: '#f8f9fa',
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+    paddingVertical: 8,
+  },
+  quickMessagesScroll: {
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  quickMessageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#2196F3',
+    gap: 6,
+  },
+  quickMessageIcon: {
+    fontSize: 16,
+  },
+  quickMessageText: {
+    fontSize: 13,
+    color: '#2196F3',
+    fontWeight: '600',
+  },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    padding: 12,
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
+  },
+  quickMessagesToggle: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
   },
   input: {
     flex: 1,

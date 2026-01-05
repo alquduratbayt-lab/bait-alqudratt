@@ -7,6 +7,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Modal,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Path, Circle, Rect } from 'react-native-svg';
@@ -44,10 +45,38 @@ const RocketIcon = () => (
   </Svg>
 );
 
+const CalendarIcon = () => (
+  <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+    <Rect x={3} y={4} width={18} height={18} rx={2} stroke="#f59e0b" strokeWidth={2} fill="none" />
+    <Path d="M16 2v4M8 2v4M3 10h18" stroke="#f59e0b" strokeWidth={2} strokeLinecap="round" />
+  </Svg>
+);
+
+const MoonIcon = () => (
+  <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+    <Path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" fill="#78350f" />
+  </Svg>
+);
+
+const PackageIcon = () => (
+  <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+    <Path d="M12 2L2 7l10 5 10-5-10-5z" fill="#fff" fillOpacity={0.9} />
+    <Path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+  </Svg>
+);
+
+const ListIcon = () => (
+  <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+    <Path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="#333" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>
+);
+
 export default function SubscriptionsScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [subscriptions, setSubscriptions] = useState([]);
   const [currentSubscription, setCurrentSubscription] = useState(null);
+  const [upgradeModalVisible, setUpgradeModalVisible] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState(null);
 
   const calculateDaysRemaining = (endDate) => {
     const today = new Date();
@@ -73,6 +102,32 @@ export default function SubscriptionsScreen({ navigation }) {
       premium: '#8b5cf6'
     };
     return colors[tier] || '#3b82f6';
+  };
+
+  const formatHijriDate = (date) => {
+    try {
+      return new Intl.DateTimeFormat('ar-SA-u-ca-islamic', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }).format(new Date(date));
+    } catch (error) {
+      console.error('Error formatting Hijri date:', error);
+      return '';
+    }
+  };
+
+  const formatGregorianDate = (date) => {
+    try {
+      return new Intl.DateTimeFormat('ar-EG-u-ca-gregory', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }).format(new Date(date));
+    } catch (error) {
+      console.error('Error formatting Gregorian date:', error);
+      return '';
+    }
   };
 
   useEffect(() => {
@@ -135,7 +190,28 @@ export default function SubscriptionsScreen({ navigation }) {
   };
 
   const handleSubscribe = (plan) => {
-    navigation.navigate('Payment', { plan });
+    // التحقق من وجود اشتراك نشط للترقية
+    if (currentSubscription) {
+      const isCurrentPlan = 
+        (currentSubscription.subscription_tier === 'basic' && plan.name === 'أساسي') ||
+        (currentSubscription.subscription_tier === 'premium' && plan.name === 'مميز');
+      
+      if (isCurrentPlan) {
+        Alert.alert('باقتك الحالية', 'هذه هي باقتك الحالية');
+        return;
+      }
+
+      // فتح Modal للترقية
+      setSelectedPlan(plan);
+      setUpgradeModalVisible(true);
+    } else {
+      navigation.navigate('Payment', { plan });
+    }
+  };
+
+  const confirmUpgrade = () => {
+    setUpgradeModalVisible(false);
+    navigation.navigate('Payment', { plan: selectedPlan, isUpgrade: true });
   };
 
   if (loading) {
@@ -166,7 +242,10 @@ export default function SubscriptionsScreen({ navigation }) {
             { borderColor: getTierColor(currentSubscription.subscription_tier) }
           ]}>
             <View style={styles.currentHeader}>
-              <Text style={styles.currentTitle}>👑 باقتك الحالية</Text>
+              <View style={styles.currentTitleContainer}>
+                <CrownIcon />
+                <Text style={styles.currentTitle}>باقتك الحالية</Text>
+              </View>
             </View>
             
             <View style={styles.currentBody}>
@@ -174,9 +253,12 @@ export default function SubscriptionsScreen({ navigation }) {
                 styles.tierBadge,
                 { backgroundColor: getTierColor(currentSubscription.subscription_tier) }
               ]}>
-                <Text style={styles.tierBadgeText}>
-                  📦 الباقة {getTierName(currentSubscription.subscription_tier)}
-                </Text>
+                <View style={styles.tierBadgeContent}>
+                  <PackageIcon />
+                  <Text style={styles.tierBadgeText}>
+                    الباقة {getTierName(currentSubscription.subscription_tier)}
+                  </Text>
+                </View>
               </View>
 
               <View style={styles.daysContainer}>
@@ -187,21 +269,43 @@ export default function SubscriptionsScreen({ navigation }) {
               </View>
 
               <View style={styles.expiryContainer}>
-                <Text style={styles.expiryLabel}>📅 ينتهي في:</Text>
-                <Text style={styles.expiryDate}>
-                  {new Date(currentSubscription.subscription_end).toLocaleDateString('ar-SA')}
-                </Text>
+                <View style={styles.expiryTitleContainer}>
+                  <CalendarIcon />
+                  <Text style={styles.expiryTitle}>ينتهي في:</Text>
+                </View>
+                <View style={styles.datesWrapper}>
+                  <View style={styles.dateRow}>
+                    <View style={styles.dateLabelContainer}>
+                      <MoonIcon />
+                      <Text style={styles.dateLabel}>هجري:</Text>
+                    </View>
+                    <Text style={styles.dateValue}>
+                      {formatHijriDate(currentSubscription.subscription_end)}
+                    </Text>
+                  </View>
+                  <View style={styles.dateRow}>
+                    <View style={styles.dateLabelContainer}>
+                      <CalendarIcon />
+                      <Text style={styles.dateLabel}>ميلادي:</Text>
+                    </View>
+                    <Text style={styles.dateValue}>
+                      {formatGregorianDate(currentSubscription.subscription_end)}
+                    </Text>
+                  </View>
+                </View>
               </View>
             </View>
           </View>
         )}
 
-        {!currentSubscription && (
-          <Text style={styles.sectionTitle}>الباقات المتاحة</Text>
-        )}
+        <View style={styles.sectionTitleContainer}>
+          {currentSubscription && <ListIcon />}
+          <Text style={styles.sectionTitle}>
+            {currentSubscription ? 'جميع الباقات' : 'الباقات المتاحة'}
+          </Text>
+        </View>
 
-        {!currentSubscription && (
-          <View style={styles.plansGrid}>
+        <View style={styles.plansGrid}>
             {subscriptions.map((plan, index) => {
             const isBasic = index === 0;
             const isPremium = index === 1;
@@ -250,9 +354,16 @@ export default function SubscriptionsScreen({ navigation }) {
                   {currentSubscription?.subscription_tier === plan.name.toLowerCase() || 
                    (currentSubscription?.subscription_tier === 'basic' && plan.name === 'أساسي') ||
                    (currentSubscription?.subscription_tier === 'premium' && plan.name === 'مميز') ? (
-                    <View style={styles.activeButton}>
-                      <Text style={styles.activeButtonText}>الباقة الحالية</Text>
+                    <View style={styles.currentPlanButton}>
+                      <Text style={styles.currentPlanButtonText}>✓ باقتك الحالية</Text>
                     </View>
+                  ) : currentSubscription ? (
+                    <TouchableOpacity 
+                      style={[styles.upgradeButton, { backgroundColor: '#22c55e' }]}
+                      onPress={() => handleSubscribe(plan)}
+                    >
+                      <Text style={styles.upgradeButtonText}>ترقية + {plan.duration_days} يوم</Text>
+                    </TouchableOpacity>
                   ) : (
                     <TouchableOpacity 
                       style={[styles.subscribeButton, { backgroundColor: gradientColors[0] }]}
@@ -266,14 +377,76 @@ export default function SubscriptionsScreen({ navigation }) {
             );
             })}
           </View>
-        )}
 
-        {!currentSubscription && subscriptions.length === 0 && (
+        {subscriptions.length === 0 && (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>لا توجد باقات متاحة حالياً</Text>
           </View>
         )}
       </ScrollView>
+
+      {/* Modal الترقية */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={upgradeModalVisible}
+        onRequestClose={() => setUpgradeModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>ترقية الباقة</Text>
+            
+            {selectedPlan && currentSubscription && (
+              <View style={styles.modalBody}>
+                <Text style={styles.modalText}>
+                  سيتم ترقية باقتك إلى "{selectedPlan.name}"
+                </Text>
+
+                <View style={styles.modalInfoBox}>
+                  <View style={styles.modalInfoRow}>
+                    <Text style={styles.modalInfoLabel}>المبلغ:</Text>
+                    <Text style={styles.modalInfoValue}>{selectedPlan.price} ريال</Text>
+                  </View>
+                  <View style={styles.modalInfoRow}>
+                    <Text style={styles.modalInfoLabel}>المدة الإضافية:</Text>
+                    <Text style={styles.modalInfoValue}>{selectedPlan.duration_days} يوم</Text>
+                  </View>
+                  <View style={styles.modalInfoRow}>
+                    <Text style={styles.modalInfoLabel}>تاريخ الانتهاء الجديد:</Text>
+                    <Text style={styles.modalInfoValue}>
+                      {formatGregorianDate(
+                        new Date(
+                          new Date(currentSubscription.subscription_end).getTime() + 
+                          selectedPlan.duration_days * 24 * 60 * 60 * 1000
+                        ).toISOString()
+                      )}
+                    </Text>
+                  </View>
+                </View>
+
+                <Text style={styles.modalNote}>
+                  ستحصل على جميع مميزات الباقة الجديدة فوراً
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={styles.modalCancelButton}
+                onPress={() => setUpgradeModalVisible(false)}
+              >
+                <Text style={styles.modalCancelButtonText}>إلغاء</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.modalConfirmButton}
+                onPress={confirmUpgrade}
+              >
+                <Text style={styles.modalConfirmButtonText}>متابعة الدفع</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -329,11 +502,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
   },
+  currentTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
   currentTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1e293b',
-    textAlign: 'center',
   },
   currentBody: {
     padding: 20,
@@ -344,6 +522,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 16,
     alignItems: 'center',
+  },
+  tierBadgeContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   tierBadgeText: {
     fontSize: 16,
@@ -370,30 +553,61 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   expiryContainer: {
+    backgroundColor: '#fef3c7',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  expiryTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  expiryTitle: {
+    fontSize: 15,
+    color: '#92400e',
+    fontWeight: 'bold',
+  },
+  datesWrapper: {
+    gap: 8,
+  },
+  dateRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#fef3c7',
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    backgroundColor: '#fffbeb',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
-  expiryLabel: {
-    fontSize: 14,
-    color: '#92400e',
+  dateLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  dateLabel: {
+    fontSize: 13,
+    color: '#78350f',
     fontWeight: '600',
   },
-  expiryDate: {
-    fontSize: 14,
-    color: '#92400e',
+  dateValue: {
+    fontSize: 13,
+    color: '#78350f',
     fontWeight: 'bold',
+  },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 20,
-    textAlign: 'center',
   },
   plansGrid: {
     gap: 16,
@@ -491,13 +705,29 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
   },
-  activeButton: {
-    backgroundColor: '#22c55e',
+  currentPlanButton: {
+    backgroundColor: '#9ca3af',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
   },
-  activeButtonText: {
+  currentPlanButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  upgradeButton: {
+    backgroundColor: '#22c55e',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    shadowColor: '#22c55e',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  upgradeButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#fff',
@@ -511,5 +741,106 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: '#999',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  modalBody: {
+    marginBottom: 24,
+  },
+  modalText: {
+    fontSize: 16,
+    color: '#475569',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 24,
+  },
+  modalInfoBox: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  modalInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalInfoLabel: {
+    fontSize: 14,
+    color: '#64748b',
+    fontWeight: '600',
+  },
+  modalInfoValue: {
+    fontSize: 14,
+    color: '#1e293b',
+    fontWeight: 'bold',
+  },
+  modalNote: {
+    fontSize: 13,
+    color: '#22c55e',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalCancelButton: {
+    flex: 1,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  modalCancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  modalConfirmButton: {
+    flex: 1,
+    backgroundColor: '#2196F3',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    shadowColor: '#2196F3',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  modalConfirmButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
 });

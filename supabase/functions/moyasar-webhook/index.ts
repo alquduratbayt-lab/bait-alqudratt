@@ -74,10 +74,29 @@ serve(async (req) => {
       const planId = metadata.plan_id
       const durationDays = metadata.duration_days || 30
 
-      // حساب تاريخ الانتهاء
-      const today = new Date()
-      const endDate = new Date(today)
+      // جلب الاشتراك الحالي للمستخدم
+      const { data: currentUser } = await supabase
+        .from('users')
+        .select('subscription_end, subscription_status')
+        .eq('id', userId)
+        .single()
+
+      // حساب تاريخ الانتهاء (مع التمديد إذا كان هناك اشتراك نشط)
+      let startDate = new Date()
+      
+      if (currentUser?.subscription_end && currentUser?.subscription_status === 'active') {
+        const currentEndDate = new Date(currentUser.subscription_end)
+        // إذا كان الاشتراك الحالي لم ينتهي، نبدأ من تاريخ انتهائه
+        if (currentEndDate > startDate) {
+          startDate = currentEndDate
+          console.log(`Extending subscription from: ${currentEndDate.toISOString()}`)
+        }
+      }
+
+      const endDate = new Date(startDate)
       endDate.setDate(endDate.getDate() + durationDays)
+
+      console.log(`New subscription end date: ${endDate.toISOString()}`)
 
       // جلب معلومات الباقة لتحديد tier
       const { data: plan } = await supabase
@@ -110,7 +129,7 @@ serve(async (req) => {
         )
       }
 
-      console.log(`Subscription updated for user ${userId}`)
+      console.log(`Subscription updated for user ${userId} - New tier: ${tier}, End date: ${endDate.toISOString().split('T')[0]}`)
     }
 
     return new Response(

@@ -17,6 +17,16 @@ import Svg, { Path, Circle } from 'react-native-svg';
 import { supabase } from '../lib/supabase';
 import { sendOTP } from '../services/taqnyatService';
 
+// دالة تحويل الأرقام العربية إلى إنجليزية
+const convertArabicToEnglish = (text) => {
+  const arabicNumbers = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  const englishNumbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+  
+  return text.replace(/[٠-٩]/g, (match) => {
+    return englishNumbers[arabicNumbers.indexOf(match)];
+  });
+};
+
 // أيقونة العين للباسورد
 const EyeIcon = ({ visible }) => (
   <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
@@ -158,10 +168,10 @@ export default function RegisterScreen({ navigation }) {
             <Text style={styles.countryCode}>+966</Text>
             <TextInput
               style={styles.phoneInput}
-              placeholder="519496939 مثال"
+              placeholder="5XXXXXXXX"
               placeholderTextColor="#999"
               value={phone}
-              onChangeText={setPhone}
+              onChangeText={(text) => setPhone(convertArabicToEnglish(text))}
               keyboardType="phone-pad"
               textAlign="right"
             />
@@ -183,7 +193,7 @@ export default function RegisterScreen({ navigation }) {
           <View style={styles.inputWrapper}>
             <TextInput
               style={styles.input}
-              placeholder="مثال محمد علي"
+              placeholder="الاسم الكامل"
               placeholderTextColor="#999"
               value={name}
               onChangeText={setName}
@@ -199,10 +209,10 @@ export default function RegisterScreen({ navigation }) {
             <Text style={styles.countryCode}>+966</Text>
             <TextInput
               style={styles.phoneInput}
-              placeholder="5983517896 مثال"
+              placeholder="5XXXXXXXX"
               placeholderTextColor="#999"
               value={parentPhone}
-              onChangeText={setParentPhone}
+              onChangeText={(text) => setParentPhone(convertArabicToEnglish(text))}
               keyboardType="phone-pad"
               textAlign="right"
             />
@@ -221,7 +231,7 @@ export default function RegisterScreen({ navigation }) {
             </TouchableOpacity>
             <TextInput
               style={[styles.input, styles.passwordInput]}
-              placeholder="mohamemed 123 مثال"
+              placeholder="كلمة المرور"
               placeholderTextColor="#999"
               value={password}
               onChangeText={setPassword}

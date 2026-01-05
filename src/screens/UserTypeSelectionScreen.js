@@ -195,13 +195,12 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 20,
     paddingBottom: 40,
+    justifyContent: 'center',
   },
   header: {
     alignItems: 'center',
     marginBottom: 30,
-    marginTop: 40,
   },
   title: {
     fontSize: 22,
@@ -216,11 +215,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   cardsContainer: {
-    justifyContent: 'flex-start',
     alignItems: 'center',
     gap: 20,
-    paddingTop: 10,
-    flex: 1,
   },
   card: {
     borderRadius: 16,

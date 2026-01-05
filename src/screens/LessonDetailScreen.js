@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Dimensions, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Dimensions, Alert, Image, SafeAreaView } from 'react-native';
 import { Video, Audio } from 'expo-av';
 import { WebView } from 'react-native-webview';
 import { StatusBar } from 'expo-status-bar';
@@ -57,57 +57,40 @@ const FullscreenIcon = () => (
   </Svg>
 );
 
-// أيقونة الساعة الرملية
-const HourglassIcon = () => (
-  <Svg width={100} height={100} viewBox="0 0 100 100" fill="none">
-    {/* الإطار الخارجي العلوي */}
-    <Path d="M25 15h50" stroke="#333" strokeWidth={4} strokeLinecap="round" />
-    <Path d="M25 85h50" stroke="#333" strokeWidth={4} strokeLinecap="round" />
-    
-    {/* الجزء العلوي من الساعة */}
+// أيقونة الكتاب
+const BookIcon = () => (
+  <Svg width={80} height={80} viewBox="0 0 24 24" fill="none">
+    {/* الكتاب المفتوح */}
     <Path 
-      d="M28 18v20c0 6 8 12 22 17 14-5 22-11 22-17V18" 
-      stroke="#333" 
-      strokeWidth={3} 
-      fill="none" 
-    />
-    
-    {/* الجزء السفلي من الساعة */}
-    <Path 
-      d="M28 82V62c0-6 8-12 22-17 14 5 22 11 22 17v20" 
-      stroke="#333" 
-      strokeWidth={3} 
-      fill="none" 
-    />
-    
-    {/* الرمل في الأسفل */}
-    <Path 
-      d="M35 75c0-4 6-8 15-10 9 2 15 6 15 10v5H35v-5z" 
-      fill="#e5e7eb" 
-    />
-    
-    {/* حبات الرمل المتساقطة */}
-    <Circle cx={50} cy={50} r={2} fill="#333" />
-    <Circle cx={50} cy={58} r={1.5} fill="#333" />
-    
-    {/* السهم الدائري */}
-    <Path 
-      d="M75 25c8 8 10 18 8 28" 
-      stroke="#333" 
-      strokeWidth={2.5} 
-      strokeLinecap="round"
-      fill="none"
-    />
-    <Path 
-      d="M80 50l3-8 8 3" 
-      stroke="#333" 
-      strokeWidth={2.5} 
-      strokeLinecap="round"
+      d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2V3z" 
+      stroke="#2196F3" 
+      strokeWidth={2} 
+      strokeLinecap="round" 
       strokeLinejoin="round"
-      fill="none"
+      fill="#E3F2FD"
     />
+    <Path 
+      d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7V3z" 
+      stroke="#2196F3" 
+      strokeWidth={2} 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+      fill="#E3F2FD"
+    />
+    {/* خطوط الصفحات */}
+    <Path d="M6 8h3M6 12h3" stroke="#2196F3" strokeWidth={1.5} strokeLinecap="round" />
+    <Path d="M15 8h3M15 12h3" stroke="#2196F3" strokeWidth={1.5} strokeLinecap="round" />
   </Svg>
 );
+
+// دالة تنسيق الوقت من ميلي ثانية إلى MM:SS
+const formatTime = (millis) => {
+  if (!millis || millis < 0) return '00:00';
+  const totalSeconds = Math.floor(millis / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+};
 
 // دالة للتحقق من نوع الفيديو
 const getVideoType = (url) => {
@@ -305,10 +288,31 @@ export default function LessonDetailScreen({ navigation, route }) {
     setIsLandscape(width > height);
 
     // الاستماع للتغييرات
-    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+    const subscription = Dimensions.addEventListener('change', async ({ window }) => {
       const { width: w, height: h } = window;
       const landscape = w > h;
       console.log('Orientation changed:', landscape ? 'Landscape' : 'Portrait');
+      
+      // حفظ موقع الفيديو الحالي قبل تغيير الاتجاه
+      const currentStatus = videoStatusRef.current;
+      if (currentStatus?.isLoaded && currentStatus?.positionMillis) {
+        const currentPosition = Math.floor(currentStatus.positionMillis / 1000);
+        console.log('Saving position before orientation change:', currentPosition);
+        setSavedPosition(currentPosition);
+        
+        // إعادة تعيين flag لاستعادة الموقع
+        hasRestoredPosition.current = false;
+        
+        // استعادة الموقع بعد تغيير الاتجاه
+        setTimeout(async () => {
+          if (videoRef.current && currentPosition > 0) {
+            console.log('Restoring position after orientation change:', currentPosition);
+            await videoRef.current.setPositionAsync(currentPosition * 1000);
+            hasRestoredPosition.current = true;
+          }
+        }, 100);
+      }
+      
       setIsLandscape(landscape);
     });
 
@@ -713,8 +717,10 @@ export default function LessonDetailScreen({ navigation, route }) {
     );
   }
 
+  const ContainerComponent = isLandscape ? View : SafeAreaView;
+  
   return (
-    <View style={styles.container}>
+    <ContainerComponent style={styles.container}>
       <StatusBar style="light" hidden={isLandscape} />
       
       {/* قسم الفيديو */}
@@ -746,8 +752,11 @@ export default function LessonDetailScreen({ navigation, route }) {
                   source={{ uri: lessonData.video_url }}
                   style={styles.video}
                   resizeMode="contain"
-                  shouldPlay
+                  shouldPlay={!currentQuestion}
+                  useNativeControls={false}
                   onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+                  progressUpdateIntervalMillis={500}
+                  isMuted={false}
                 />
                 <TouchableOpacity 
                   style={styles.videoOverlay}
@@ -824,7 +833,28 @@ export default function LessonDetailScreen({ navigation, route }) {
 
       {/* قسم المحتوى */}
       {!isLandscape && (
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.contentWrapper}>
+          {/* شريط التقدم والوقت - فوق المحتوى */}
+          {videoStatus?.isLoaded && (
+            <View style={styles.progressContainerAbsolute}>
+              <View style={styles.progressBar}>
+                <View 
+                  style={[
+                    styles.progressFill,
+                    { width: `${Math.min(100, ((videoStatus.positionMillis || 0) / (videoStatus.durationMillis || 1)) * 100)}%` }
+                  ]} 
+                />
+              </View>
+              <View style={styles.timeBubbleContainer}>
+                <View style={styles.timeBubble}>
+                  <Text style={styles.timeText}>
+                    {formatTime(videoStatus.positionMillis || 0)} / {formatTime(videoStatus.durationMillis || 0)}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+          <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
         {currentQuestion ? (
           <View style={styles.questionContainer}>
             <Text style={styles.questionTitle}>سؤال</Text>
@@ -886,45 +916,318 @@ export default function LessonDetailScreen({ navigation, route }) {
           </View>
         ) : (
           <View style={styles.waitingSection}>
-            <HourglassIcon />
-            <Text style={styles.waitingTitle}>انتظر!</Text>
-            <Text style={styles.waitingText}>الأسئلة ستظهر هنا أثناء تقدمك في الفيديو</Text>
+            <BookIcon />
+            <Text style={styles.waitingTitle}>ابدأ بمشاهدة الفيديو</Text>
+            <Text style={styles.waitingText}>ستظهر الأسئلة تلقائياً أثناء تقدمك في الدرس</Text>
           </View>
         )}
-        </ScrollView>
+          </ScrollView>
+        </View>
       )}
-    </View>
+    </ContainerComponent>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  videoContainer: {
-    width: '100%',
-    height: 280,
-    backgroundColor: '#1a1a2e',
-    position: 'relative',
-    paddingTop: 50,
-  },
-  videoContainerFullscreen: {
-    height: '100%',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 999,
-    paddingTop: 0,
-  },
-  videoBackground: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  video: {
+    container: {
+      flex: 1,
+      backgroundColor: '#fff',
+    },
+    videoContainer: {
+      width: '100%',
+      height: 250,
+      backgroundColor: '#1a1a2e',
+      position: 'relative',
+    },
+    videoContainerFullscreen: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 999,
+      width: '100%',
+      height: '100%',
+      backgroundColor: '#000',
+    },
+    contentWrapper: {
+      flex: 1,
+      position: 'relative',
+    },
+    progressContainerAbsolute: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: '#f8f9fa',
+      paddingHorizontal: 20,
+      paddingTop: 15,
+      paddingBottom: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: '#dee2e6',
+      zIndex: 10,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 5,
+    },
+    progressBar: {
+      height: 6,
+      backgroundColor: '#dee2e6',
+      borderRadius: 3,
+      overflow: 'hidden',
+      marginBottom: 12,
+    },
+    progressFill: {
+      height: '100%',
+      backgroundColor: '#2196F3',
+      borderRadius: 3,
+    },
+    timeBubbleContainer: {
+      alignItems: 'center',
+    },
+    timeBubble: {
+      backgroundColor: '#2196F3',
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      shadowColor: '#2196F3',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 4,
+    },
+    timeText: {
+      fontSize: 14,
+      color: '#FFFFFF',
+      fontWeight: 'bold',
+      letterSpacing: 0.5,
+    },
+    videoBackground: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    video: {
+      width: '100%',
+      height: '100%',
+    },
+    videoPlaceholder: {
+      width: '100%',
+      height: '100%',
+      backgroundColor: '#2d3748',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    placeholderText: {
+      color: '#fff',
+      fontSize: 18,
+    },
+    backButton: {
+      position: 'absolute',
+      top: 50,
+      right: 20,
+      zIndex: 10,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      borderRadius: 20,
+      padding: 8,
+    },
+    videoOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    controlsOverlay: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 30,
+    },
+    controlButton: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'relative',
+    },
+    controlButtonText: {
+      position: 'absolute',
+      color: '#fff',
+      fontSize: 14,
+      fontWeight: 'bold',
+    },
+    rewindButton: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'relative',
+    },
+    rewindBadge: {
+      position: 'absolute',
+      bottom: -5,
+      backgroundColor: '#2196F3',
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 10,
+    },
+    rewindBadgeText: {
+      color: '#fff',
+      fontSize: 12,
+      fontWeight: 'bold',
+    },
+    playButton: {
+      position: 'absolute',
+      top: '50%',
+      left: '50%',
+      marginLeft: -30,
+      marginTop: -30,
+    },
+    controlsBar: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    controlsLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    controlsRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    controlButton: {
+      padding: 8,
+    },
+    progressDot: {
+      position: 'absolute',
+      left: '60%',
+      top: -4,
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      backgroundColor: '#fff',
+      marginLeft: -6,
+    },
+    content: {
+      flex: 1,
+      backgroundColor: '#fff',
+    },
+    contentContainer: {
+      flexGrow: 1,
+      paddingTop: 90,
+    },
+    waitingSection: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: 40,
+      paddingHorizontal: 40,
+      backgroundColor: '#FFFFFF',
+      borderRadius: 12,
+      marginHorizontal: 20,
+      marginTop: 30,
+    },
+    waitingTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: '#333',
+      marginTop: 20,
+      marginBottom: 8,
+    },
+    waitingText: {
+      fontSize: 14,
+      color: '#666',
+      textAlign: 'center',
+      lineHeight: 22,
+    },
+    questionsCount: {
+      fontSize: 14,
+      color: '#2196F3',
+      marginTop: 10,
+      fontWeight: '600',
+    },
+    questionContainer: {
+      padding: 20,
+    },
+    questionTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: '#2196F3',
+      marginBottom: 10,
+      textAlign: 'right',
+    },
+    questionText: {
+      fontSize: 16,
+      color: '#333',
+      marginBottom: 20,
+      textAlign: 'right',
+      lineHeight: 24,
+    },
+    optionsContainer: {
+      marginBottom: 20,
+    },
+    optionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 15,
+      borderWidth: 2,
+      borderColor: '#e0e0e0',
+      borderRadius: 10,
+      marginBottom: 10,
+    },
+    optionButtonSelected: {
+      borderColor: '#2196F3',
+      backgroundColor: '#e3f2fd',
+    },
+    optionCircle: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      borderWidth: 2,
+      borderColor: '#e0e0e0',
+      marginLeft: 10,
+    },
+    optionCircleSelected: {
+      borderColor: '#2196F3',
+      backgroundColor: '#2196F3',
+    },
+    optionText: {
+      fontSize: 16,
+      color: '#333',
+      textAlign: 'right',
+    },
+    optionTextSelected: {
+      color: '#2196F3',
+      fontWeight: '600',
+    },
+    submitButton: {
+      backgroundColor: '#2196F3',
+      paddingVertical: 15,
+      borderRadius: 10,
+      alignItems: 'center',
+    },
+    submitButtonText: {
+      color: '#fff',
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    questionImage: {
+      width: '100%',
+      height: 200,
+      marginBottom: 20,
+      borderRadius: 10,
+    },
+    video: {
     width: '100%',
     height: '100%',
   },
@@ -1064,19 +1367,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 80,
     paddingHorizontal: 40,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginHorizontal: 20,
+    marginVertical: 20,
   },
   waitingTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '600',
     color: '#333',
     marginTop: 20,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   waitingText: {
-    fontSize: 15,
+    fontSize: 14,
     color: '#666',
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 22,
   },
   questionsCount: {
     fontSize: 14,

@@ -17,6 +17,16 @@ import Svg, { Path, Circle } from 'react-native-svg';
 import { supabase } from '../lib/supabase';
 import { sendOTP } from '../services/taqnyatService';
 
+// دالة تحويل الأرقام العربية إلى إنجليزية
+const convertArabicToEnglish = (text) => {
+  const arabicNumbers = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  const englishNumbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+  
+  return text.replace(/[٠-٩]/g, (match) => {
+    return englishNumbers[arabicNumbers.indexOf(match)];
+  });
+};
+
 // أيقونة العين للباسورد
 const EyeIcon = ({ visible }) => (
   <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
@@ -178,7 +188,7 @@ export default function ParentRegisterScreen({ navigation }) {
               placeholder="5XXXXXXXX"
               placeholderTextColor="#999"
               value={phone}
-              onChangeText={setPhone}
+              onChangeText={(text) => setPhone(convertArabicToEnglish(text))}
               keyboardType="phone-pad"
               maxLength={9}
               textAlign="right"

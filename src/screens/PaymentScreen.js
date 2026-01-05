@@ -41,7 +41,7 @@ export default function PaymentScreen({ route, navigation }) {
         return;
       }
 
-      // التحقق من وجود اشتراك نشط
+      // التحقق من وجود اشتراك نشط (للترقية)
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('subscription_tier, subscription_end, subscription_status')
@@ -50,15 +50,17 @@ export default function PaymentScreen({ route, navigation }) {
 
       if (userError) throw userError;
 
-      // التحقق من أن المستخدم ليس لديه اشتراك نشط
-      if (userData && userData.subscription_tier !== 'free' && userData.subscription_end) {
+      // السماح بالترقية إذا كان هناك اشتراك نشط
+      const isUpgrade = route.params?.isUpgrade || false;
+      
+      if (userData && userData.subscription_tier !== 'free' && userData.subscription_end && !isUpgrade) {
         const endDate = new Date(userData.subscription_end);
         const today = new Date();
         
         if (endDate > today && userData.subscription_status === 'active') {
           Alert.alert(
             'لديك اشتراك نشط',
-            'لديك اشتراك نشط بالفعل. لا يمكنك الاشتراك مرة أخرى حتى ينتهي اشتراكك الحالي.',
+            'لديك اشتراك نشط بالفعل. يمكنك الترقية من صفحة الاشتراكات.',
             [{ text: 'حسناً', onPress: () => navigation.replace('Subscriptions') }]
           );
           return;
