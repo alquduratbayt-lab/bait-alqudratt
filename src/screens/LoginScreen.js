@@ -11,6 +11,7 @@ import {
   Dimensions,
   SafeAreaView,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Path, Circle } from 'react-native-svg';
@@ -83,6 +84,7 @@ export default function LoginScreen({ navigation, route }) {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertConfig, setAlertConfig] = useState({ type: 'error', title: '', message: '', buttons: [] });
 
@@ -92,12 +94,16 @@ export default function LoginScreen({ navigation, route }) {
   };
 
   const handleLogin = async () => {
+    // منع الضغط المتكرر
+    if (loading) return;
+    
     // التحقق من البيانات
     if (!phone || !password) {
       showAlert('error', 'خطأ', 'الرجاء إدخال رقم الهاتف وكلمة المرور');
       return;
     }
 
+    setLoading(true);
     try {
       // تحويل رقم الهاتف إلى email مؤقت
       // المستخدم يدخل الرقم بدون +966 (مثل: 501234567)
@@ -176,6 +182,14 @@ export default function LoginScreen({ navigation, route }) {
           await savePushToken(userData.id, token);
         }
         
+        // تحديث updated_at لتفعيل Real-time في ParentHomeScreen
+        await supabase
+          .from('users')
+          .update({ updated_at: new Date().toISOString() })
+          .eq('id', userData.id);
+        
+        console.log('✅ Updated student last login timestamp');
+        
         // إرسال إشعار دخول لولي الأمر
         const { notifyParentLogin } = require('../lib/notificationService');
         notifyParentLogin(userData.id, userData.name);
@@ -234,6 +248,8 @@ export default function LoginScreen({ navigation, route }) {
       } else {
         showAlert('error', 'خطأ', 'حدث خطأ غير متوقع. الرجاء المحاولة مرة أخرى.');
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -332,12 +348,17 @@ export default function LoginScreen({ navigation, route }) {
 
         {/* زر تسجيل الدخول */}
         <TouchableOpacity 
-          style={styles.loginButton} 
+          style={[styles.loginButton, loading && styles.loginButtonDisabled]} 
           onPress={handleLogin}
           activeOpacity={0.7}
+          disabled={loading}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Text style={styles.loginButtonText}>تسجيل الدخول</Text>
+          {loading ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Text style={styles.loginButtonText}>تسجيل الدخول</Text>
+          )}
         </TouchableOpacity>
 
         {/* إنشاء حساب */}
@@ -534,6 +555,10 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
     marginBottom: 24,
+  },
+  loginButtonDisabled: {
+    backgroundColor: '#90CAF9',
+    opacity: 0.7,
   },
   loginButtonText: {
     fontSize: 18,

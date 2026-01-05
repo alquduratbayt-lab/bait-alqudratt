@@ -5,15 +5,15 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
   Image,
-  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import Svg, { Path, Circle, Rect, G } from 'react-native-svg';
+import Svg, { Path, Circle, Rect } from 'react-native-svg';
 import { supabase } from '../lib/supabase';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useFocusEffect } from '@react-navigation/native';
+import { ProfileCardSkeleton } from '../components/SkeletonLoader';
 
 // أيقونة السهم للخلف
 const BackIcon = () => (
@@ -178,12 +178,44 @@ export default function ProfileScreen({ navigation }) {
         return;
       }
 
-      // جلب بيانات المستخدم من جدول users
-      const { data: userInfo } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+      const { fetchWithCache } = require('../lib/cacheService');
+
+      // جلب جميع البيانات بشكل متوازي (أسرع!)
+      const [userInfo, progressData, totalLessons] = await Promise.all([
+        fetchWithCache(
+          `user_profile_${user.id}`,
+          async () => {
+            const { data, error } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', user.id)
+              .single();
+            if (error) throw error;
+            return data;
+          },
+          2 * 60 * 1000
+        ),
+        fetchWithCache(
+          `student_progress_profile_${user.id}`,
+          async () => {
+            const { data } = await supabase
+              .from('student_progress')
+              .select('lesson_id, passed, score')
+              .eq('user_id', user.id);
+            return data;
+          },
+          2 * 60 * 1000
+        ),
+        fetchWithCache(
+          'total_lessons_count',
+          async () => {
+            const { count } = await supabase
+              .from('lessons')
+              .select('*', { count: 'exact', head: true });
+            return count;
+          }
+        )
+      ]);
 
       setUserData({
         name: userInfo?.name || user.email?.split('@')[0] || 'مستخدم',
@@ -210,17 +242,6 @@ export default function ProfileScreen({ navigation }) {
           subscriptionStatus = 'منتهي';
         }
       }
-
-      // جلب إحصائيات التقدم
-      const { data: progressData } = await supabase
-        .from('student_progress')
-        .select('lesson_id, passed, score')
-        .eq('user_id', user.id);
-
-      // جلب إجمالي عدد الدروس
-      const { count: totalLessons } = await supabase
-        .from('lessons')
-        .select('*', { count: 'exact', head: true });
 
       // حساب الإحصائيات
       const completedLessons = progressData?.filter(p => p.passed).length || 0;
@@ -347,9 +368,14 @@ export default function ProfileScreen({ navigation }) {
 
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#2196F3" />
-        <Text style={{ marginTop: 10, color: '#666' }}>جاري التحميل...</Text>
+      <View style={styles.container}>
+        <StatusBar style="dark" />
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>حسابي</Text>
+        </View>
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <ProfileCardSkeleton />
+        </ScrollView>
       </View>
     );
   }

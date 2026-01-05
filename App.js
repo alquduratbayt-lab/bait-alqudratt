@@ -3,6 +3,9 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
+import { enableScreens } from 'react-native-screens';
+
+enableScreens();
 
 // إعداد كيفية عرض الإشعارات عندما يكون التطبيق مفتوحاً
 Notifications.setNotificationHandler({

@@ -9,16 +9,17 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
-  ActivityIndicator,
   Alert,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { supabase } from '../lib/supabase';
-import * as ScreenOrientation from 'expo-screen-orientation';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system/legacy';
+import * as FileSystem from 'expo-file-system';
+import * as ScreenOrientation from 'expo-screen-orientation';
+import { FormFieldSkeleton } from '../components/SkeletonLoader';
 
 // أيقونة السهم للخلف
 const BackIcon = () => (
@@ -125,12 +126,22 @@ export default function EditProfileScreen({ navigation }) {
       setUserId(user.id);
       setEmail(user.email);
 
-      // جلب بيانات المستخدم من جدول users
-      const { data: userInfo } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+      const { fetchWithCache } = require('../lib/cacheService');
+
+      // جلب بيانات المستخدم من جدول users مع Cache
+      const userInfo = await fetchWithCache(
+        `user_edit_profile_${user.id}`,
+        async () => {
+          const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+          if (error) throw error;
+          return data;
+        },
+        1 * 60 * 1000 // 1 دقيقة للتعديل
+      );
 
       if (userInfo) {
         console.log('User Info:', userInfo);
@@ -319,9 +330,23 @@ export default function EditProfileScreen({ navigation }) {
 
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#2196F3" />
-        <Text style={{ marginTop: 10, color: '#666' }}>جاري التحميل...</Text>
+      <View style={styles.container}>
+        <StatusBar style="dark" />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <BackIcon />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>تعديل الملف الشخصي</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.avatarContainer}>
+            <View style={[styles.avatar, { backgroundColor: '#e0e0e0' }]} />
+          </View>
+          <FormFieldSkeleton />
+          <FormFieldSkeleton />
+          <FormFieldSkeleton />
+        </ScrollView>
       </View>
     );
   }

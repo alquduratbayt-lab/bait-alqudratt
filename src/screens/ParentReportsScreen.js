@@ -1,18 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  ActivityIndicator,
-  Dimensions,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path, Circle, Rect, Line, G, Text as SvgText } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
+import { ProfileCardSkeleton } from '../components/SkeletonLoader';
 
 // أيقونة السهم للخلف
 const BackIcon = () => (
@@ -128,18 +121,20 @@ export default function ParentReportsScreen({ navigation, route }) {
         return;
       }
 
-      // جلب الابن المختار من AsyncStorage
-      const selectedChildId = await AsyncStorage.getItem('selectedChildId');
-
-      // جلب بيانات الطالب المرتبط
-      const { data: students, error: studentsError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('parent_id', user.id)
-        .eq('type', 'student')
-        .eq('approval_status', 'approved');
-
-      if (studentsError) throw studentsError;
+      // جلب البيانات بشكل متوازي (أسرع!)
+      const [selectedChildId, students] = await Promise.all([
+        AsyncStorage.getItem('selectedChildId'),
+        supabase
+          .from('users')
+          .select('*')
+          .eq('parent_id', user.id)
+          .eq('type', 'student')
+          .eq('approval_status', 'approved')
+          .then(({ data, error }) => {
+            if (error) throw error;
+            return data;
+          })
+      ]);
 
       if (students && students.length > 0) {
         // إذا كان هناك ابن محدد، استخدمه، وإلا استخدم الأول
@@ -523,8 +518,59 @@ export default function ParentReportsScreen({ navigation, route }) {
 
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#2196F3" />
+      <View style={styles.container}>
+        <StatusBar style="dark" />
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton}>
+            <View style={{ width: 24, height: 24, backgroundColor: '#e0e0e0', borderRadius: 12 }} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>التقارير</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {/* Stats Grid Skeleton */}
+          <View style={styles.statsGrid}>
+            {[1, 2, 3, 4].map((i) => (
+              <View key={i} style={[styles.statCard, { backgroundColor: '#fff' }]}>
+                <View style={{ width: 60, height: 32, backgroundColor: '#e0e0e0', borderRadius: 4, marginBottom: 8 }} />
+                <View style={{ width: 100, height: 16, backgroundColor: '#e0e0e0', borderRadius: 4, marginBottom: 4 }} />
+                <View style={{ width: 80, height: 12, backgroundColor: '#e0e0e0', borderRadius: 4 }} />
+              </View>
+            ))}
+          </View>
+          
+          {/* Info Cards Row Skeleton */}
+          <View style={styles.infoCardsRow}>
+            <View style={styles.infoCard}>
+              <View style={{ width: 50, height: 28, backgroundColor: '#e0e0e0', borderRadius: 4, marginBottom: 8 }} />
+              <View style={{ width: 80, height: 14, backgroundColor: '#e0e0e0', borderRadius: 4 }} />
+            </View>
+            <View style={styles.infoCard}>
+              <View style={{ width: 50, height: 28, backgroundColor: '#e0e0e0', borderRadius: 4, marginBottom: 8 }} />
+              <View style={{ width: 80, height: 14, backgroundColor: '#e0e0e0', borderRadius: 4 }} />
+            </View>
+          </View>
+          
+          {/* Activity Card Skeleton */}
+          <View style={styles.activityCard}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+              <View style={{ width: 80, height: 16, backgroundColor: '#e0e0e0', borderRadius: 4 }} />
+              <View style={{ width: 100, height: 16, backgroundColor: '#e0e0e0', borderRadius: 4 }} />
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <View style={{ width: 80, height: 16, backgroundColor: '#e0e0e0', borderRadius: 4 }} />
+              <View style={{ width: 100, height: 16, backgroundColor: '#e0e0e0', borderRadius: 4 }} />
+            </View>
+          </View>
+          
+          {/* Chart Skeleton */}
+          <View style={styles.chartCard}>
+            <View style={{ width: 150, height: 20, backgroundColor: '#e0e0e0', borderRadius: 4, marginBottom: 16 }} />
+            <View style={{ alignItems: 'center', justifyContent: 'center', height: 200 }}>
+              <View style={{ width: 160, height: 160, backgroundColor: '#f5f5f5', borderRadius: 80 }} />
+            </View>
+          </View>
+        </ScrollView>
       </View>
     );
   }

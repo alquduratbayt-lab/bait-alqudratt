@@ -126,6 +126,7 @@ export default function LessonDetailScreen({ navigation, route }) {
   const [showControls, setShowControls] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isLandscape, setIsLandscape] = useState(false);
+  const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
   const [savedPosition, setSavedPosition] = useState(initialPosition || 0);
   const videoRef = useRef(null);
   const controlsTimeout = useRef(null);
@@ -293,27 +294,31 @@ export default function LessonDetailScreen({ navigation, route }) {
       const landscape = w > h;
       console.log('Orientation changed:', landscape ? 'Landscape' : 'Portrait');
       
-      // حفظ موقع الفيديو الحالي قبل تغيير الاتجاه
+      // حفظ الموقع الحالي قبل Re-render
       const currentStatus = videoStatusRef.current;
       if (currentStatus?.isLoaded && currentStatus?.positionMillis) {
         const currentPosition = Math.floor(currentStatus.positionMillis / 1000);
-        console.log('Saving position before orientation change:', currentPosition);
-        setSavedPosition(currentPosition);
+        const isPlaying = currentStatus.isPlaying;
+        console.log('Saving position before orientation change:', currentPosition, 'isPlaying:', isPlaying);
         
-        // إعادة تعيين flag لاستعادة الموقع
-        hasRestoredPosition.current = false;
+        // تحديث الاتجاه (يسبب re-render)
+        setIsLandscape(landscape);
         
-        // استعادة الموقع بعد تغيير الاتجاه
-        setTimeout(async () => {
+        // استعادة الموقع بعد Re-render بدون توقف
+        requestAnimationFrame(() => {
           if (videoRef.current && currentPosition > 0) {
             console.log('Restoring position after orientation change:', currentPosition);
-            await videoRef.current.setPositionAsync(currentPosition * 1000);
-            hasRestoredPosition.current = true;
+            videoRef.current.setPositionAsync(currentPosition * 1000, { toleranceMillisBefore: 0, toleranceMillisAfter: 0 })
+              .then(() => {
+                if (isPlaying) {
+                  videoRef.current.playAsync();
+                }
+              });
           }
-        }, 100);
+        });
+      } else {
+        setIsLandscape(landscape);
       }
-      
-      setIsLandscape(landscape);
     });
 
     // حفظ موضع الفيديو كل 5 ثواني
@@ -390,26 +395,42 @@ export default function LessonDetailScreen({ navigation, route }) {
 
   const fetchLessonData = async () => {
     try {
-      const { data: lessonInfo, error: lessonError } = await supabase
-        .from('lessons')
-        .select('*')
-        .eq('id', lesson.id)
-        .single();
+      const { fetchWithCache } = require('../lib/cacheService');
+      
+      // جلب بيانات الدرس مع Cache
+      const lessonInfo = await fetchWithCache(
+        `lesson_${lesson.id}`,
+        async () => {
+          const { data, error } = await supabase
+            .from('lessons')
+            .select('*')
+            .eq('id', lesson.id)
+            .single();
+          if (error) throw error;
+          return data;
+        }
+      );
 
-      if (lessonError) throw lessonError;
       setLessonData(lessonInfo);
 
-      // جلب الأسئلة مع النسخ البديلة
-      const { data: questionsData, error: questionsError } = await supabase
-        .from('questions')
-        .select(`
-          *,
-          question_variants (*)
-        `)
-        .eq('lesson_id', lesson.id)
-        .order('show_at_time');
+      // جلب الأسئلة مع النسخ البديلة مع Cache
+      const questionsData = await fetchWithCache(
+        `questions_${lesson.id}`,
+        async () => {
+          const { data, error } = await supabase
+            .from('questions')
+            .select(`
+              *,
+              question_variants (*)
+            `)
+            .eq('lesson_id', lesson.id)
+            .order('show_at_time');
+          if (error) throw error;
+          return data;
+        }
+      );
 
-      if (questionsError) throw questionsError;
+      if (!questionsData) return;
       
       // لكل سؤال، اختيار نسخة عشوائية
       const questionsWithVariants = (questionsData || []).map(q => {

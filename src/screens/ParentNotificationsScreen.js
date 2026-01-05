@@ -11,6 +11,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Path, Circle, Rect } from 'react-native-svg';
 import { supabase } from '../lib/supabase';
+import { ProfileCardSkeleton } from '../components/SkeletonLoader';
 
 // أيقونة السهم للخلف
 const BackIcon = () => (
@@ -86,23 +87,32 @@ export default function ParentNotificationsScreen({ navigation, route }) {
         return;
       }
 
-      let query = supabase
-        .from('parent_notifications')
-        .select('*')
-        .eq('parent_id', user.id)
-        .order('created_at', { ascending: false });
+      const { fetchWithCache } = require('../lib/cacheService');
 
-      if (activeFilter === 'read') {
-        query = query.eq('is_read', true);
-      } else if (activeFilter === 'unread') {
-        query = query.eq('is_read', false);
-      }
+      // جلب الإشعارات مع Cache
+      const data = await fetchWithCache(
+        `parent_notifications_${user.id}_${activeFilter}`,
+        async () => {
+          let query = supabase
+            .from('parent_notifications')
+            .select('*')
+            .eq('parent_id', user.id)
+            .order('created_at', { ascending: false });
 
-      const { data, error } = await query;
+          if (activeFilter === 'read') {
+            query = query.eq('is_read', true);
+          } else if (activeFilter === 'unread') {
+            query = query.eq('is_read', false);
+          }
 
-      if (error) throw error;
+          const { data, error } = await query;
+          if (error) throw error;
+          return data || [];
+        },
+        1 * 60 * 1000 // 1 دقيقة للإشعارات
+      );
 
-      const grouped = groupNotificationsByDate(data || []);
+      const grouped = groupNotificationsByDate(data);
       setNotificationsData(grouped);
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -262,9 +272,19 @@ export default function ParentNotificationsScreen({ navigation, route }) {
 
       {/* قائمة الإشعارات */}
       {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0ea5e9" />
-        </View>
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {/* Notifications Skeleton */}
+          {[1, 2, 3, 4].map((i) => (
+            <View key={i} style={{ backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 }}>
+              <View style={{ width: 48, height: 48, backgroundColor: '#e0e0e0', borderRadius: 24, marginRight: 12 }} />
+              <View style={{ flex: 1 }}>
+                <View style={{ width: '80%', height: 16, backgroundColor: '#e0e0e0', borderRadius: 4, marginBottom: 8 }} />
+                <View style={{ width: '60%', height: 12, backgroundColor: '#e0e0e0', borderRadius: 4, marginBottom: 4 }} />
+                <View style={{ width: 60, height: 10, backgroundColor: '#e0e0e0', borderRadius: 4 }} />
+              </View>
+            </View>
+          ))}
+        </ScrollView>
       ) : notificationsData.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>لا توجد إشعارات</Text>

@@ -5,19 +5,56 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path, Circle, Rect } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
+import { ProfileCardSkeleton } from '../components/SkeletonLoader';
 
-// أيقونة الشمس
+// أيقونة الشمس (صباحاً)
 const SunIcon = () => (
-  <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-    <Circle cx={12} cy={12} r={4} stroke="#1e3a5f" strokeWidth={2} fill="none" />
-    <Path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="#1e3a5f" strokeWidth={2} strokeLinecap="round" />
+  <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+    <Circle cx={12} cy={12} r={5} stroke="#f59e0b" strokeWidth={2} fill="#fbbf24" />
+    <Path
+      d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+      stroke="#f59e0b"
+      strokeWidth={2}
+      strokeLinecap="round"
+    />
+  </Svg>
+);
+
+// أيقونة المساء
+const EveningIcon = () => (
+  <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"
+      stroke="#f97316"
+      strokeWidth={2}
+      fill="#fb923c"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+// أيقونة الليل
+const NightIcon = () => (
+  <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"
+      stroke="#1e40af"
+      strokeWidth={2}
+      fill="#1e3a8a"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Circle cx={18} cy={6} r={1.5} fill="#fbbf24" />
+    <Circle cx={15} cy={4} r={1} fill="#fbbf24" />
+    <Circle cx={20} cy={9} r={1} fill="#fbbf24" />
   </Svg>
 );
 
@@ -74,6 +111,7 @@ export default function ParentHomeScreen({ navigation, route }) {
   const [loading, setLoading] = useState(true);
   const [parentData, setParentData] = useState(null);
   const [studentData, setStudentData] = useState(null);
+  const [greeting, setGreeting] = useState({ text: 'صباح الخير', icon: 'sun' });
   const [stats, setStats] = useState({
     totalVideos: 0,
     completedLessons: 0,
@@ -86,7 +124,36 @@ export default function ParentHomeScreen({ navigation, route }) {
 
   useEffect(() => {
     fetchParentAndStudentData();
+    updateGreeting();
   }, []);
+
+  // Polling كل 10 ثواني لتحديث آخر دخول
+  useEffect(() => {
+    if (!studentData) return;
+    
+    console.log('🔔 Starting polling for student:', studentData.id);
+    
+    const pollingInterval = setInterval(() => {
+      console.log('🔄 Polling for student updates...');
+      fetchStudentLastLogin();
+    }, 10000); // 10 ثواني
+    
+    return () => {
+      console.log('🔌 Stopping polling');
+      clearInterval(pollingInterval);
+    };
+  }, [studentData]);
+
+  const updateGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) {
+      setGreeting({ text: 'صباح الخير', icon: 'sun' });
+    } else if (hour >= 12 && hour < 18) {
+      setGreeting({ text: 'مساء الخير', icon: 'evening' });
+    } else {
+      setGreeting({ text: 'مساء الخير', icon: 'night' });
+    }
+  };
 
   // إعادة جلب البيانات عند العودة للصفحة
   useEffect(() => {
@@ -97,38 +164,97 @@ export default function ParentHomeScreen({ navigation, route }) {
     return unsubscribe;
   }, [navigation]);
 
-  // Real-time subscription لمراقبة طلبات الموافقة الجديدة
+  // Real-time subscription لمراقبة تحديثات الطالب (آخر دخول)
   useEffect(() => {
+    let subscription = null;
+    
     const setupRealtimeSubscription = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        console.log('❌ No user found for real-time subscription');
+        return;
+      }
+
+      console.log('🔔 Setting up real-time subscription for parent:', user.id);
 
       // الاشتراك في تغييرات جدول users للطلاب المرتبطين بولي الأمر
-      const subscription = supabase
-        .channel('parent-students-changes')
+      subscription = supabase
+        .channel(`parent-students-${user.id}`)
         .on(
           'postgres_changes',
           {
-            event: '*', // INSERT, UPDATE, DELETE
+            event: 'UPDATE',
             schema: 'public',
             table: 'users',
             filter: `parent_id=eq.${user.id}`
           },
           (payload) => {
-            console.log('Real-time update received:', payload);
-            // إعادة جلب البيانات عند أي تغيير
-            fetchParentAndStudentData();
+            console.log('🔄 Real-time update received:', payload);
+            console.log('📊 Current studentData:', studentData?.id);
+            console.log('📊 Updated student:', payload.new?.id);
+            
+            // تحديث بيانات الطالب مباشرة
+            if (payload.new) {
+              console.log('✅ Updating student data in real-time');
+              setStudentData(payload.new);
+              
+              // تحديث آخر دخول في الإحصائيات
+              setStats(prev => ({
+                ...prev,
+                lastLogin: payload.new.updated_at
+              }));
+            }
           }
         )
-        .subscribe();
-
-      return () => {
-        subscription.unsubscribe();
-      };
+        .subscribe((status) => {
+          console.log('📡 Subscription status:', status);
+        });
     };
 
     setupRealtimeSubscription();
+    
+    return () => {
+      if (subscription) {
+        console.log('🔌 Unsubscribing from real-time');
+        subscription.unsubscribe();
+      }
+    };
   }, []);
+
+  const fetchStudentLastLogin = async () => {
+    try {
+      if (!studentData) {
+        console.log('⚠️ No studentData available for polling');
+        return;
+      }
+      
+      console.log('📡 Fetching last login for student:', studentData.id);
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('updated_at')
+        .eq('id', studentData.id)
+        .single();
+      
+      if (error) throw error;
+      
+      console.log('📊 Current updated_at:', studentData.updated_at);
+      console.log('📊 New updated_at:', data.updated_at);
+      
+      if (data && data.updated_at !== studentData.updated_at) {
+        console.log('✅ Student activity updated! Updating UI...');
+        setStudentData(prev => ({ ...prev, updated_at: data.updated_at }));
+        setStats(prev => ({
+          ...prev,
+          lastLogin: data.updated_at
+        }));
+      } else {
+        console.log('ℹ️ No change in student activity');
+      }
+    } catch (error) {
+      console.error('❌ Error fetching student last login:', error);
+    }
+  };
 
   const fetchParentAndStudentData = async () => {
     try {
@@ -138,28 +264,31 @@ export default function ParentHomeScreen({ navigation, route }) {
         return;
       }
 
-      // جلب بيانات ولي الأمر
-      const { data: parent, error: parentError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+      // جلب البيانات بشكل متوازي (أسرع!)
+      const [parent, selectedChildId, students] = await Promise.all([
+        supabase
+          .from('users')
+          .select('*')
+          .eq('id', user.id)
+          .single()
+          .then(({ data, error }) => {
+            if (error) throw error;
+            return data;
+          }),
+        AsyncStorage.getItem('selectedChildId'),
+        supabase
+          .from('users')
+          .select('*')
+          .eq('parent_id', user.id)
+          .eq('type', 'student')
+          .eq('approval_status', 'approved')
+          .then(({ data, error }) => {
+            if (error) throw error;
+            return data;
+          })
+      ]);
 
-      if (parentError) throw parentError;
       setParentData(parent);
-
-      // جلب الابن المختار من AsyncStorage
-      const selectedChildId = await AsyncStorage.getItem('selectedChildId');
-
-      // جلب بيانات الطالب المرتبط بولي الأمر
-      const { data: students, error: studentsError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('parent_id', user.id)
-        .eq('type', 'student')
-        .eq('approval_status', 'approved');
-
-      if (studentsError) throw studentsError;
 
       if (students && students.length > 0) {
         // إذا كان هناك ابن محدد، استخدمه، وإلا استخدم الأول
@@ -186,21 +315,31 @@ export default function ParentHomeScreen({ navigation, route }) {
 
   const fetchStudentStats = async (studentId, studentUpdatedAt) => {
     try {
-      // جلب تقدم الطالب
-      const { data: progress, error: progressError } = await supabase
-        .from('student_progress')
-        .select(`
-          *,
-          lessons (
-            id,
-            title,
-            subject_id,
-            subjects (name)
-          )
-        `)
-        .eq('user_id', studentId);
+      const { fetchWithCache } = require('../lib/cacheService');
+      
+      // جلب تقدم الطالب مع Cache
+      const progress = await fetchWithCache(
+        `student_progress_${studentId}`,
+        async () => {
+          const { data, error } = await supabase
+            .from('student_progress')
+            .select(`
+              *,
+              lessons (
+                id,
+                title,
+                subject_id,
+                subjects (name)
+              )
+            `)
+            .eq('user_id', studentId);
+          if (error) throw error;
+          return data;
+        },
+        2 * 60 * 1000 // 2 دقائق للإحصائيات
+      );
 
-      if (progressError) throw progressError;
+      if (!progress) return;
 
       console.log('Progress data:', JSON.stringify(progress, null, 2));
       console.log('Progress count:', progress?.length);
@@ -342,8 +481,45 @@ export default function ParentHomeScreen({ navigation, route }) {
 
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#2196F3" />
+      <View style={styles.container}>
+        <StatusBar style="dark" />
+        <View style={styles.header}>
+          <View style={styles.greetingSection}>
+            <View style={{ width: 120, height: 20, backgroundColor: '#e0e0e0', borderRadius: 4, marginBottom: 8 }} />
+            <View style={{ width: 100, height: 24, backgroundColor: '#e0e0e0', borderRadius: 4 }} />
+          </View>
+          <View style={styles.lastLoginCard}>
+            <View style={{ width: 150, height: 16, backgroundColor: '#e0e0e0', borderRadius: 4, marginBottom: 8 }} />
+            <View style={{ width: 100, height: 14, backgroundColor: '#e0e0e0', borderRadius: 4, marginBottom: 12 }} />
+            <View style={{ width: 120, height: 36, backgroundColor: '#e0e0e0', borderRadius: 8 }} />
+          </View>
+        </View>
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={{ width: 150, height: 20, backgroundColor: '#e0e0e0', borderRadius: 4, marginBottom: 12 }} />
+          <View style={{ width: 80, height: 40, backgroundColor: '#e0e0e0', borderRadius: 4, marginBottom: 16 }} />
+          <View style={styles.statsContainer}>
+            {[1, 2, 3, 4].map((i) => (
+              <View key={i} style={styles.statRow}>
+                <View style={{ width: 60, height: 16, backgroundColor: '#e0e0e0', borderRadius: 4 }} />
+                <View style={{ width: 150, height: 16, backgroundColor: '#e0e0e0', borderRadius: 4 }} />
+              </View>
+            ))}
+          </View>
+          <View style={{ width: 150, height: 20, backgroundColor: '#e0e0e0', borderRadius: 4, marginTop: 24, marginBottom: 12 }} />
+          {[1, 2, 3].map((i) => (
+            <View key={i} style={{ backgroundColor: '#f8f9fa', borderRadius: 12, padding: 16, marginBottom: 12 }}>
+              <View style={{ width: '80%', height: 16, backgroundColor: '#e0e0e0', borderRadius: 4, marginBottom: 8 }} />
+              <View style={{ width: 100, height: 12, backgroundColor: '#e0e0e0', borderRadius: 4 }} />
+            </View>
+          ))}
+        </ScrollView>
+        <View style={styles.bottomNav}>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <View key={i} style={styles.navItem}>
+              <View style={{ width: 24, height: 24, backgroundColor: '#e0e0e0', borderRadius: 12 }} />
+            </View>
+          ))}
+        </View>
       </View>
     );
   }
@@ -395,8 +571,10 @@ export default function ParentHomeScreen({ navigation, route }) {
       <View style={styles.header}>
         <View style={styles.greetingSection}>
           <View style={styles.greetingRow}>
-            <SunIcon />
-            <Text style={styles.greetingText}>صباح الخير</Text>
+            {greeting.icon === 'sun' && <SunIcon />}
+            {greeting.icon === 'evening' && <EveningIcon />}
+            {greeting.icon === 'night' && <NightIcon />}
+            <Text style={styles.greetingText}>{greeting.text}</Text>
           </View>
           <Text style={styles.parentName}>{parentName}</Text>
         </View>
@@ -518,7 +696,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   header: {
-    paddingTop: 50,
+    paddingTop: 70,
     paddingBottom: 20,
     paddingHorizontal: 20,
     backgroundColor: '#fff',

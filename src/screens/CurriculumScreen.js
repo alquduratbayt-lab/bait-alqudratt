@@ -8,12 +8,14 @@ import {
   FlatList,
   ActivityIndicator,
   Image,
+  ScrollView,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Path, Circle, Rect, Ellipse, G } from 'react-native-svg';
 import { supabase } from '../lib/supabase';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useFocusEffect } from '@react-navigation/native';
+import { SubjectCardSkeleton } from '../components/SkeletonLoader';
 
 // أيقونة البحث
 const SearchIcon = () => (
@@ -122,34 +124,55 @@ export default function CurriculumScreen({ navigation }) {
 
   const fetchSubjects = async () => {
     try {
-      // جلب المواد
-      const { data: subjectsData, error: subjectsError } = await supabase
-        .from('subjects')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (subjectsError) throw subjectsError;
-
-      // جلب المستخدم الحالي
+      const { fetchWithCache } = require('../lib/cacheService');
       const { data: { user } } = await supabase.auth.getUser();
 
-      // جلب تقدم الطالب
-      let studentProgress = [];
-      if (user) {
-        const { data: progressData, error: progressError } = await supabase
-          .from('student_progress')
-          .select('lesson_id, passed')
-          .eq('user_id', user.id);
+      // جلب جميع البيانات بشكل متوازي (أسرع!)
+      const promises = [
+        fetchWithCache(
+          'curriculum_subjects',
+          async () => {
+            const { data, error } = await supabase
+              .from('subjects')
+              .select('*')
+              .order('created_at', { ascending: false });
+            if (error) throw error;
+            return data;
+          }
+        ),
+        fetchWithCache(
+          'all_lessons_curriculum',
+          async () => {
+            const { data } = await supabase
+              .from('lessons')
+              .select('id, subject_id');
+            return data;
+          }
+        )
+      ];
 
-        if (!progressError) {
-          studentProgress = progressData || [];
-        }
+      // إضافة تقدم الطالب إذا كان مسجل دخول
+      if (user) {
+        promises.push(
+          fetchWithCache(
+            `student_progress_curriculum_${user.id}`,
+            async () => {
+              const { data, error } = await supabase
+                .from('student_progress')
+                .select('lesson_id, passed')
+                .eq('user_id', user.id);
+              if (error) throw error;
+              return data || [];
+            },
+            2 * 60 * 1000
+          )
+        );
       }
 
-      // جلب جميع الدروس لحساب التقدم
-      const { data: lessonsData } = await supabase
-        .from('lessons')
-        .select('id, subject_id');
+      const results = await Promise.all(promises);
+      const subjectsData = results[0];
+      const lessonsData = results[1];
+      const studentProgress = user ? results[2] : [];
 
       // تحويل البيانات من Supabase إلى صيغة التطبيق
       const formattedSubjects = subjectsData.map((subject, index) => {
@@ -408,10 +431,11 @@ export default function CurriculumScreen({ navigation }) {
 
       {/* قائمة المواد */}
       {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2196F3" />
-          <Text style={styles.loadingText}>جاري تحميل المواد...</Text>
-        </View>
+        <ScrollView style={styles.subjectsList} showsVerticalScrollIndicator={false}>
+          {[1, 2, 3, 4].map((item) => (
+            <SubjectCardSkeleton key={item} />
+          ))}
+        </ScrollView>
       ) : subjects.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>لا توجد مواد دراسية</Text>

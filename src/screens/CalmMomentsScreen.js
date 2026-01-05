@@ -11,6 +11,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Path, Circle, Rect } from 'react-native-svg';
 import { supabase } from '../lib/supabase';
+import { ProfileCardSkeleton } from '../components/SkeletonLoader';
 
 // أيقونة السهم للخلف
 const BackIcon = () => (
@@ -48,14 +49,22 @@ export default function CalmMomentsScreen({ navigation }) {
 
   const fetchMoments = async () => {
     try {
-      const { data, error } = await supabase
-        .from('calm_moments')
-        .select('*')
-        .eq('is_active', true)
-        .order('order_index', { ascending: true });
-
-      if (error) throw error;
-      setMoments(data || []);
+      const { fetchWithCache } = require('../lib/cacheService');
+      
+      const data = await fetchWithCache(
+        'calm_moments',
+        async () => {
+          const { data, error } = await supabase
+            .from('calm_moments')
+            .select('*')
+            .eq('is_active', true)
+            .order('order_index', { ascending: true });
+          if (error) throw error;
+          return data || [];
+        },
+        10 * 60 * 1000 // 10 دقائق
+      );
+      setMoments(data);
     } catch (error) {
       console.error('Error fetching calm moments:', error);
     } finally {
@@ -74,8 +83,19 @@ export default function CalmMomentsScreen({ navigation }) {
 
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#1a5f7a" />
+      <View style={styles.container}>
+        <StatusBar style="dark" />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <BackIcon />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>لحظات هدوء</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <ProfileCardSkeleton />
+          <ProfileCardSkeleton />
+        </ScrollView>
       </View>
     );
   }

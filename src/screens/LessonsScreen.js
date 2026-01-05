@@ -1,18 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import SubscriptionModal from '../components/SubscriptionModal';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  FlatList,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Dimensions, Image } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Path, Circle, Rect } from 'react-native-svg';
 import { supabase } from '../lib/supabase';
 import * as ScreenOrientation from 'expo-screen-orientation';
+import { LessonCardSkeleton } from '../components/SkeletonLoader';
+import SubscriptionModal from '../components/SubscriptionModal';
 
 // أيقونة السهم للخلف
 const BackIcon = () => (
@@ -91,16 +85,6 @@ export default function LessonsScreen({ navigation, route }) {
     }
   }, [subjectId]);
 
-  // إعادة جلب البيانات عند العودة للصفحة
-  useFocusEffect(
-    React.useCallback(() => {
-      if (subjectId) {
-        console.log('🔄 إعادة تحميل بيانات الدروس...');
-        loadData();
-      }
-    }, [subjectId])
-  );
-
   const loadData = async () => {
     const subscription = await fetchUserSubscription();
     await fetchLessons(subscription);
@@ -112,13 +96,23 @@ export default function LessonsScreen({ navigation, route }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('subscription_tier, subscription_status')
-        .eq('id', user.id)
-        .single();
+      const { fetchWithCache } = require('../lib/cacheService');
+      
+      const userData = await fetchWithCache(
+        `user_subscription_${user.id}`,
+        async () => {
+          const { data, error } = await supabase
+            .from('users')
+            .select('subscription_tier, subscription_status')
+            .eq('id', user.id)
+            .single();
+          if (error) throw error;
+          return data;
+        },
+        2 * 60 * 1000
+      );
 
-      if (error) throw error;
+      if (!userData) return null;
       
       console.log('📊 حالة الاشتراك:');
       console.log('subscription_tier:', userData?.subscription_tier);
@@ -134,13 +128,22 @@ export default function LessonsScreen({ navigation, route }) {
 
   const fetchLessons = async (subscription) => {
     try {
-      const { data, error } = await supabase
-        .from('lessons')
-        .select('*')
-        .eq('subject_id', subjectId)
-        .order('created_at');
+      const { fetchWithCache } = require('../lib/cacheService');
+      
+      const data = await fetchWithCache(
+        `lessons_${subjectId}`,
+        async () => {
+          const { data, error } = await supabase
+            .from('lessons')
+            .select('*')
+            .eq('subject_id', subjectId)
+            .order('created_at');
+          if (error) throw error;
+          return data;
+        }
+      );
 
-      if (error) throw error;
+      if (!data) return;
       
       console.log('📚 إجمالي الدروس:', data?.length || 0);
       console.log('🔑 subscription_tier في fetchLessons:', subscription?.subscription_tier);
@@ -286,14 +289,35 @@ export default function LessonsScreen({ navigation, route }) {
     if (tab === 'profile') navigation.navigate('Profile');
   };
 
-  if (loading) {
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <ScrollView style={styles.lessonsList} showsVerticalScrollIndicator={false}>
+          {[1, 2, 3, 4, 5].map((item) => (
+            <LessonCardSkeleton key={item} />
+          ))}
+        </ScrollView>
+      );
+    }
+
+    if (lessons.length === 0) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>لا توجد دروس في هذه المادة</Text>
+        </View>
+      );
+    }
+
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#1a5f7a" />
-        <Text style={{ marginTop: 10, color: '#666' }}>جاري التحميل...</Text>
-      </View>
+      <ScrollView style={styles.lessonsList} showsVerticalScrollIndicator={false}>
+        {lessons.map((lesson, index) => (
+          <View key={lesson.id || index}>
+            {renderLesson({ item: lesson, index })}
+          </View>
+        ))}
+      </ScrollView>
     );
-  }
+  };
 
   return (
     <View style={styles.container}>
@@ -309,39 +333,7 @@ export default function LessonsScreen({ navigation, route }) {
       </View>
 
       {/* قائمة الدروس */}
-      {loading ? (
-        <View style={styles.lessonsList}>
-          {[1, 2, 3, 4, 5].map((item) => (
-            <View key={item} style={styles.skeletonCard}>
-              <View style={styles.skeletonLeft}>
-                <View style={styles.skeletonNumber} />
-              </View>
-              <View style={styles.skeletonRight}>
-                <View style={styles.skeletonTitle} />
-                <View style={styles.skeletonSubject} />
-              </View>
-            </View>
-          ))}
-        </View>
-      ) : lessons.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Svg width={80} height={80} viewBox="0 0 80 80" fill="none">
-            <Circle cx={40} cy={40} r={35} fill="#f0f0f0" />
-            <Rect x={20} y={25} width={40} height={30} rx={3} fill="#fff" stroke="#ccc" strokeWidth={2} />
-            <Path d="M28 35h24M28 42h18" stroke="#ccc" strokeWidth={2} strokeLinecap="round" />
-          </Svg>
-          <Text style={styles.emptyTitle}>لا توجد دروس مضافة بعد</Text>
-          <Text style={styles.emptySubtitle}>سيتم إضافة الدروس قريباً</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={lessons}
-          renderItem={renderLesson}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.lessonsList}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+      {renderContent()}
 
       {/* Subscription Modal */}
       <SubscriptionModal

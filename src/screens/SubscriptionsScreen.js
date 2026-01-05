@@ -12,6 +12,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Path, Circle, Rect } from 'react-native-svg';
 import { supabase } from '../lib/supabase';
+import { ProfileCardSkeleton } from '../components/SkeletonLoader';
 
 const BackIcon = () => (
   <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
@@ -146,14 +147,22 @@ export default function SubscriptionsScreen({ navigation }) {
 
   const fetchSubscriptions = async () => {
     try {
-      const { data, error } = await supabase
-        .from('subscription_plans')
-        .select('*')
-        .eq('is_active', true)
-        .order('price');
-
-      if (error) throw error;
-      setSubscriptions(data || []);
+      const { fetchWithCache } = require('../lib/cacheService');
+      
+      const data = await fetchWithCache(
+        'subscription_plans',
+        async () => {
+          const { data, error } = await supabase
+            .from('subscription_plans')
+            .select('*')
+            .eq('is_active', true)
+            .order('price');
+          if (error) throw error;
+          return data || [];
+        },
+        10 * 60 * 1000 // 10 دقائق
+      );
+      setSubscriptions(data);
     } catch (error) {
       console.error('Error fetching subscriptions:', error);
     } finally {
@@ -166,13 +175,23 @@ export default function SubscriptionsScreen({ navigation }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
-        .from('users')
-        .select('subscription_tier, subscription_end, subscription_status')
-        .eq('id', user.id)
-        .single();
+      const { fetchWithCache } = require('../lib/cacheService');
+      
+      const data = await fetchWithCache(
+        `user_subscription_${user.id}`,
+        async () => {
+          const { data, error } = await supabase
+            .from('users')
+            .select('subscription_tier, subscription_end, subscription_status')
+            .eq('id', user.id)
+            .single();
+          if (error) throw error;
+          return data;
+        },
+        2 * 60 * 1000 // 2 دقيقة
+      );
 
-      if (error) throw error;
+      if (!data) return;
       
       // التحقق من وجود اشتراك نشط
       if (data && data.subscription_tier !== 'free' && data.subscription_end) {
@@ -216,9 +235,20 @@ export default function SubscriptionsScreen({ navigation }) {
 
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#2196F3" />
-        <Text style={{ marginTop: 10, color: '#666' }}>جاري التحميل...</Text>
+      <View style={styles.container}>
+        <StatusBar style="dark" />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.backButton}>
+            <BackIcon />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>الاشتراكات</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <ProfileCardSkeleton />
+          <ProfileCardSkeleton />
+          <ProfileCardSkeleton />
+        </ScrollView>
       </View>
     );
   }

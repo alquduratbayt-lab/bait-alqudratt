@@ -13,6 +13,7 @@ import Svg, { Path, Rect } from 'react-native-svg';
 import { supabase } from '../lib/supabase';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { getUserPoints } from '../lib/pointsService';
+import { ProfileCardSkeleton } from '../components/SkeletonLoader';
 
 // أيقونة السهم للخلف
 const BackIcon = () => (
@@ -52,20 +53,33 @@ export default function PointsScreen({ navigation }) {
         return;
       }
 
-      // جلب رصيد النقاط
-      const points = await getUserPoints(user.id);
+      const { fetchWithCache } = require('../lib/cacheService');
+
+      // جلب البيانات بشكل متوازي (أسرع!)
+      const [points, history] = await Promise.all([
+        fetchWithCache(
+          `user_points_${user.id}`,
+          async () => await getUserPoints(user.id),
+          2 * 60 * 1000
+        ),
+        fetchWithCache(
+          `points_history_${user.id}`,
+          async () => {
+            const { data, error } = await supabase
+              .from('points_history')
+              .select('*')
+              .eq('user_id', user.id)
+              .order('created_at', { ascending: false })
+              .limit(10);
+            if (error) throw error;
+            return data || [];
+          },
+          2 * 60 * 1000
+        )
+      ]);
+      
       setUserPoints(points);
-
-      // جلب تاريخ النقاط
-      const { data: history, error } = await supabase
-        .from('points_history')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (error) throw error;
-      setPointsHistory(history || []);
+      setPointsHistory(history);
     } catch (error) {
       console.error('Error fetching points:', error);
     } finally {
@@ -94,9 +108,26 @@ export default function PointsScreen({ navigation }) {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2196F3" />
-        <Text style={styles.loadingText}>جاري التحميل...</Text>
+      <View style={styles.container}>
+        <StatusBar style="dark" />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <BackIcon />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>النقاط</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.pointsCard}>
+            <View style={styles.cardIconContainer}>
+              <View style={{ width: 28, height: 28, backgroundColor: '#e0e0e0', borderRadius: 4 }} />
+            </View>
+            <View style={styles.pointsInfo}>
+              <View style={{ width: 100, height: 14, backgroundColor: '#e0e0e0', borderRadius: 4, marginBottom: 8 }} />
+              <View style={{ width: 80, height: 32, backgroundColor: '#e0e0e0', borderRadius: 4 }} />
+            </View>
+          </View>
+        </ScrollView>
       </View>
     );
   }

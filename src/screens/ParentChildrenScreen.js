@@ -5,13 +5,15 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
-  ActivityIndicator,
+  ScrollView,
+  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
+import { ProfileCardSkeleton } from '../components/SkeletonLoader';
 
 // صورة افتراضية للطالب
 const StudentAvatar = ({ color }) => (
@@ -91,37 +93,41 @@ export default function ParentChildrenScreen({ navigation, route }) {
         return;
       }
 
-      // جلب بيانات ولي الأمر
-      const { data: parent, error: parentError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+      // جلب البيانات بشكل متوازي (أسرع!)
+      const [parent, students, pending] = await Promise.all([
+        supabase
+          .from('users')
+          .select('*')
+          .eq('id', user.id)
+          .single()
+          .then(({ data, error }) => {
+            if (error) throw error;
+            return data;
+          }),
+        supabase
+          .from('users')
+          .select('*')
+          .eq('parent_id', user.id)
+          .eq('type', 'student')
+          .eq('approval_status', 'approved')
+          .order('created_at', { ascending: true })
+          .then(({ data, error }) => {
+            if (error) throw error;
+            return data;
+          }),
+        supabase
+          .from('users')
+          .select('*')
+          .eq('parent_id', user.id)
+          .eq('type', 'student')
+          .eq('approval_status', 'pending')
+          .then(({ data, error }) => {
+            if (error) throw error;
+            return data;
+          })
+      ]);
 
-      if (parentError) throw parentError;
       setParentData(parent);
-
-      // جلب الأبناء الموافق عليهم
-      const { data: students, error: studentsError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('parent_id', user.id)
-        .eq('type', 'student')
-        .eq('approval_status', 'approved')
-        .order('created_at', { ascending: true });
-
-      if (studentsError) throw studentsError;
-
-      // جلب طلبات الموافقة المعلقة
-      const { data: pending, error: pendingError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('parent_id', user.id)
-        .eq('type', 'student')
-        .eq('approval_status', 'pending')
-        .order('created_at', { ascending: true });
-
-      if (pendingError) throw pendingError;
 
       console.log('✅ الأبناء الموافق عليهم:', students?.length || 0);
       console.log('⏳ طلبات الموافقة المعلقة:', pending?.length || 0);
@@ -241,9 +247,25 @@ export default function ParentChildrenScreen({ navigation, route }) {
 
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#1a5f7a" />
-        <Text style={{ marginTop: 10, color: '#666' }}>جاري التحميل...</Text>
+      <View style={styles.container}>
+        <StatusBar style="light" />
+        <LinearGradient colors={['#1a5f7a', '#159895']} style={styles.headerGradient}>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>الأبناء</Text>
+          </View>
+        </LinearGradient>
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {/* Children Cards Skeleton */}
+          {[1, 2].map((i) => (
+            <View key={i} style={{ backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 16, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 3 }}>
+              <View style={{ flex: 1 }}>
+                <View style={{ width: 120, height: 20, backgroundColor: '#e0e0e0', borderRadius: 4, marginBottom: 8 }} />
+                <View style={{ width: 150, height: 14, backgroundColor: '#e0e0e0', borderRadius: 4 }} />
+              </View>
+              <View style={{ width: 60, height: 60, backgroundColor: '#e0e0e0', borderRadius: 30 }} />
+            </View>
+          ))}
+        </ScrollView>
       </View>
     );
   }

@@ -15,6 +15,7 @@ import Svg, { Path } from 'react-native-svg';
 import { supabase } from '../lib/supabase';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { getUserPoints, redeemReward } from '../lib/pointsService';
+import { ProfileCardSkeleton } from '../components/SkeletonLoader';
 
 const BackIcon = () => (
   <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
@@ -46,19 +47,32 @@ export default function RewardsScreen({ navigation }) {
         return;
       }
 
-      // جلب رصيد النقاط
-      const points = await getUserPoints(user.id);
+      const { fetchWithCache } = require('../lib/cacheService');
+
+      // جلب البيانات بشكل متوازي (أسرع!)
+      const [points, rewardsData] = await Promise.all([
+        fetchWithCache(
+          `user_points_${user.id}`,
+          async () => await getUserPoints(user.id),
+          2 * 60 * 1000
+        ),
+        fetchWithCache(
+          'active_rewards',
+          async () => {
+            const { data, error } = await supabase
+              .from('rewards')
+              .select('*')
+              .eq('is_active', true)
+              .order('order_number');
+            if (error) throw error;
+            return data || [];
+          },
+          5 * 60 * 1000
+        )
+      ]);
+      
       setUserPoints(points);
-
-      // جلب الجوائز النشطة
-      const { data: rewardsData, error } = await supabase
-        .from('rewards')
-        .select('*')
-        .eq('is_active', true)
-        .order('order_number');
-
-      if (error) throw error;
-      setRewards(rewardsData || []);
+      setRewards(rewardsData);
     } catch (error) {
       console.error('Error fetching data:', error);
       Alert.alert('خطأ', 'حدث خطأ أثناء جلب البيانات');
@@ -111,9 +125,24 @@ export default function RewardsScreen({ navigation }) {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2196F3" />
-        <Text style={styles.loadingText}>جاري التحميل...</Text>
+      <View style={styles.container}>
+        <StatusBar style="dark" />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <BackIcon />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>الجوائز</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {[1, 2, 3].map((item) => (
+            <View key={item} style={styles.rewardCard}>
+              <View style={{ width: 80, height: 80, backgroundColor: '#e0e0e0', borderRadius: 12, marginBottom: 12 }} />
+              <View style={{ width: 150, height: 20, backgroundColor: '#e0e0e0', borderRadius: 4, marginBottom: 8 }} />
+              <View style={{ width: 100, height: 16, backgroundColor: '#e0e0e0', borderRadius: 4 }} />
+            </View>
+          ))}
+        </ScrollView>
       </View>
     );
   }

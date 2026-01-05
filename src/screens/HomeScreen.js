@@ -232,6 +232,7 @@ export default function HomeScreen({ navigation }) {
   useFocusEffect(
     React.useCallback(() => {
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+      fetchUnreadNotifications();
     }, [])
   );
 
@@ -288,13 +289,21 @@ export default function HomeScreen({ navigation }) {
   const fetchSubjects = async () => {
     try {
       setLoadingSubjects(true);
-      const { data, error } = await supabase
-        .from('subjects')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setSubjects(data || []);
+      const { fetchWithCache } = require('../lib/cacheService');
+      
+      const data = await fetchWithCache(
+        'subjects',
+        async () => {
+          const { data, error } = await supabase
+            .from('subjects')
+            .select('*')
+            .order('created_at', { ascending: false });
+          if (error) throw error;
+          return data || [];
+        }
+      );
+      
+      setSubjects(data);
     } catch (error) {
       console.error('Error fetching subjects:', error);
     } finally {
@@ -323,21 +332,28 @@ export default function HomeScreen({ navigation }) {
   const fetchBanners = async () => {
     try {
       setLoadingBanners(true);
-      // التحقق من تفعيل البانرات
       const { getSetting } = require('../lib/appSettingsService');
       const bannersEnabled = await getSetting('banners_enabled', true);
       
       if (!bannersEnabled) {
         setBanners([]);
       } else {
-        const { data, error } = await supabase
-          .from('banners')
-          .select('*')
-          .eq('is_active', true)
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        setBanners(data || []);
+        const { fetchWithCache } = require('../lib/cacheService');
+        
+        const data = await fetchWithCache(
+          'banners',
+          async () => {
+            const { data, error } = await supabase
+              .from('banners')
+              .select('*')
+              .eq('is_active', true)
+              .order('created_at', { ascending: false });
+            if (error) throw error;
+            return data || [];
+          }
+        );
+        
+        setBanners(data);
       }
     } catch (error) {
       console.error('Error fetching banners:', error);
