@@ -249,23 +249,31 @@ export default function ParentChildrenScreen({ navigation, route }) {
     return (
       <View style={styles.container}>
         <StatusBar style="light" />
-        <LinearGradient colors={['#1a5f7a', '#159895']} style={styles.headerGradient}>
-          <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>الأبناء</Text>
+        <LinearGradient colors={['#1a5f7a', '#2d7d9a']} style={styles.header}>
+          <View style={styles.headerTop}>
+            <View style={{ width: 40, height: 40 }} />
+            <View style={{ width: 80, height: 20, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 4 }} />
+            <View style={{ width: 40 }} />
           </View>
+          <View style={{ width: 100, height: 14, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 4, marginBottom: 8, alignSelf: 'center' }} />
+          <View style={{ width: 150, height: 26, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 4, alignSelf: 'center' }} />
         </LinearGradient>
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Children Cards Skeleton */}
-          {[1, 2].map((i) => (
-            <View key={i} style={{ backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 16, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 3 }}>
-              <View style={{ flex: 1 }}>
-                <View style={{ width: 120, height: 20, backgroundColor: '#e0e0e0', borderRadius: 4, marginBottom: 8 }} />
-                <View style={{ width: 150, height: 14, backgroundColor: '#e0e0e0', borderRadius: 4 }} />
+        <View style={styles.content}>
+          {[1, 2, 3].map((i) => (
+            <View key={i} style={styles.childCard}>
+              <View style={styles.childInfo}>
+                <View style={{ width: 100, height: 18, backgroundColor: '#e0e0e0', borderRadius: 4, marginBottom: 8 }} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                  <View style={{ width: 10, height: 10, backgroundColor: '#e0e0e0', borderRadius: 5, marginLeft: 6 }} />
+                  <View style={{ width: 120, height: 14, backgroundColor: '#e0e0e0', borderRadius: 4 }} />
+                </View>
               </View>
-              <View style={{ width: 60, height: 60, backgroundColor: '#e0e0e0', borderRadius: 30 }} />
+              <View style={styles.avatarContainer}>
+                <View style={{ width: 60, height: 60, backgroundColor: '#e0e0e0', borderRadius: 30 }} />
+              </View>
             </View>
           ))}
-        </ScrollView>
+        </View>
       </View>
     );
   }
@@ -360,7 +368,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   header: {
-    paddingTop: 50,
+    paddingTop: 60,
     paddingBottom: 40,
     paddingHorizontal: 20,
   },
