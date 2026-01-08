@@ -434,14 +434,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   userTypeDisplay: {
-    backgroundColor: '#e3f2fd',
+    backgroundColor: '#e8f4f8',
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderRadius: 12,
     marginBottom: 30,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#2196F3',
+    borderColor: '#1a5f7a',
   },
   userTypeLabel: {
     fontSize: 18,
@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
     borderColor: '#1a5f7a',
   },
   userTypeButtonActiveParent: {
-    backgroundColor: '#e3f2fd',
+    backgroundColor: '#e8f4f8',
     borderColor: '#1a5f7a',
     shadowColor: '#1a5f7a',
     shadowOffset: { width: 0, height: 4 },
@@ -541,15 +541,15 @@ const styles = StyleSheet.create({
   },
   forgotPasswordText: {
     fontSize: 14,
-    color: '#2196F3',
+    color: '#1a5f7a',
     textDecorationLine: 'underline',
   },
   loginButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#1a5f7a',
     paddingVertical: 18,
     borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#2196F3',
+    shadowColor: '#1a5f7a',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -576,7 +576,7 @@ const styles = StyleSheet.create({
   },
   registerLink: {
     fontSize: 14,
-    color: '#2196F3',
+    color: '#1a5f7a',
     fontWeight: '600',
   },
 });

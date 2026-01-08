@@ -73,35 +73,35 @@ const HomeIcon = ({ active }) => (
   <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
     <Path
       d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-      stroke={active ? '#2196F3' : '#999'}
+      stroke={active ? '#1a5f7a' : '#999'}
       strokeWidth={2}
-      fill={active ? '#e3f2fd' : 'none'}
+      fill={active ? '#e8f4f8' : 'none'}
     />
-    <Path d="M9 22V12h6v10" stroke={active ? '#2196F3' : '#999'} strokeWidth={2} />
+    <Path d="M9 22V12h6v10" stroke={active ? '#1a5f7a' : '#999'} strokeWidth={2} />
   </Svg>
 );
 
 // أيقونة الكتب
 const BooksIcon = ({ active }) => (
   <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-    <Path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke={active ? '#2196F3' : '#999'} strokeWidth={2} />
-    <Path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke={active ? '#2196F3' : '#999'} strokeWidth={2} fill={active ? '#e3f2fd' : 'none'} />
+    <Path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke={active ? '#1a5f7a' : '#999'} strokeWidth={2} />
+    <Path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke={active ? '#1a5f7a' : '#999'} strokeWidth={2} fill={active ? '#e8f4f8' : 'none'} />
   </Svg>
 );
 
 // أيقونة المنهج
 const CurriculumIcon = ({ active }) => (
   <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-    <Path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke={active ? '#2196F3' : '#999'} strokeWidth={2} fill={active ? '#e3f2fd' : 'none'} />
-    <Path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke={active ? '#2196F3' : '#999'} strokeWidth={2} />
+    <Path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke={active ? '#1a5f7a' : '#999'} strokeWidth={2} fill={active ? '#e8f4f8' : 'none'} />
+    <Path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke={active ? '#1a5f7a' : '#999'} strokeWidth={2} />
   </Svg>
 );
 
 // أيقونة حسابي
 const ProfileIcon = ({ active }) => (
   <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-    <Path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke={active ? '#2196F3' : '#999'} strokeWidth={2} />
-    <Circle cx={12} cy={7} r={4} stroke={active ? '#2196F3' : '#999'} strokeWidth={2} fill={active ? '#e3f2fd' : 'none'} />
+    <Path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke={active ? '#1a5f7a' : '#999'} strokeWidth={2} />
+    <Circle cx={12} cy={7} r={4} stroke={active ? '#1a5f7a' : '#999'} strokeWidth={2} fill={active ? '#e8f4f8' : 'none'} />
   </Svg>
 );
 
@@ -408,7 +408,7 @@ export default function CurriculumScreen({ navigation }) {
             </View>
             <View style={styles.playIconContainer}>
               <Svg width={40} height={40} viewBox="0 0 24 24" fill="none">
-                <Circle cx={12} cy={12} r={11} fill="#2196F3" />
+                <Circle cx={12} cy={12} r={11} fill="#1a5f7a" />
                 <Path d="M10 8l6 4-6 4V8z" fill="#fff" />
               </Svg>
             </View>
@@ -520,11 +520,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginTop: 10,
     marginBottom: 15,
-    backgroundColor: '#e3f2fd',
+    backgroundColor: '#e8f4f8',
     borderRadius: 15,
     padding: 15,
     borderWidth: 2,
-    borderColor: '#2196F3',
+    borderColor: '#1a5f7a',
   },
   continueContent: {
     flexDirection: 'row',
@@ -537,7 +537,7 @@ const styles = StyleSheet.create({
   continueTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#2196F3',
+    color: '#1a5f7a',
     marginBottom: 5,
   },
   continueSubtitle: {
@@ -560,7 +560,7 @@ const styles = StyleSheet.create({
   },
   continueTime: {
     fontSize: 12,
-    color: '#2196F3',
+    color: '#1a5f7a',
     fontWeight: 'bold',
   },
   playIconContainer: {
@@ -599,19 +599,19 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   filterChipActive: {
-    backgroundColor: '#e3f2fd',
-    borderColor: '#2196F3',
+    backgroundColor: '#e8f4f8',
+    borderColor: '#1a5f7a',
   },
   filterChipText: {
     fontSize: 13,
     color: '#666',
   },
   filterChipTextActive: {
-    color: '#2196F3',
+    color: '#1a5f7a',
   },
   filterChipIcon: {
     fontSize: 12,
-    color: '#2196F3',
+    color: '#1a5f7a',
   },
   subjectsList: {
     paddingHorizontal: 20,
@@ -708,12 +708,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   navItemActive: {
-    backgroundColor: '#e3f2fd',
+    backgroundColor: '#e8f4f8',
     paddingHorizontal: 20,
   },
   navTextActive: {
     fontSize: 12,
-    color: '#2196F3',
+    color: '#1a5f7a',
     fontWeight: '600',
   },
   loadingContainer: {

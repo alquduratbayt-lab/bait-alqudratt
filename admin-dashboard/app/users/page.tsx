@@ -37,6 +37,7 @@ export default function UsersPage() {
   const [filterType, setFilterType] = useState<'all' | 'student' | 'parent'>('all');
   const [newPassword, setNewPassword] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
+  const [unlockAllLessons, setUnlockAllLessons] = useState(false);
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalStudents: 0,
@@ -97,10 +98,49 @@ export default function UsersPage() {
     setShowModal(true);
   };
 
-  const handleShowUserDetails = (user: User) => {
+  const handleShowUserDetails = async (user: User) => {
     setUserDetails(user);
     setNewPassword('');
+    
+    // جلب حالة unlock_all_lessons للمستخدم
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('unlock_all_lessons')
+        .eq('id', user.id)
+        .single();
+      
+      if (!error && data) {
+        setUnlockAllLessons(data.unlock_all_lessons || false);
+      }
+    } catch (error) {
+      console.error('Error fetching unlock_all_lessons:', error);
+    }
+    
     setShowUserDetailsModal(true);
+  };
+
+  const handleToggleUnlockLessons = async () => {
+    if (!userDetails) return;
+    
+    const newValue = !unlockAllLessons;
+    
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ unlock_all_lessons: newValue })
+        .eq('id', userDetails.id);
+      
+      if (!error) {
+        setUnlockAllLessons(newValue);
+        alert(newValue ? 'تم فتح جميع الدروس للطالب' : 'تم إغلاق صلاحية فتح الدروس');
+      } else {
+        alert('حدث خطأ أثناء تحديث الصلاحية');
+      }
+    } catch (error) {
+      console.error('Error toggling unlock_all_lessons:', error);
+      alert('حدث خطأ أثناء تحديث الصلاحية');
+    }
   };
 
   const handleChangePassword = async () => {
@@ -478,6 +518,33 @@ export default function UsersPage() {
                       <div className="text-xs text-gray-500 mb-1">معرف المستخدم (ID)</div>
                       <div className="font-semibold text-gray-800 font-mono text-xs break-all">{userDetails.id}</div>
                     </div>
+
+                    {/* زر فتح/إغلاق جميع الدروس */}
+                    {userDetails.type === 'student' && (
+                      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 col-span-2 border-2 border-blue-200">
+                        <div className="text-sm font-semibold text-blue-800 mb-3 flex items-center gap-2">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                          </svg>
+                          صلاحية الوصول للدروس
+                        </div>
+                        <button
+                          onClick={handleToggleUnlockLessons}
+                          className={`w-full px-6 py-3 rounded-lg transition-all font-semibold shadow-md ${
+                            unlockAllLessons 
+                              ? 'bg-red-500 hover:bg-red-600 text-white' 
+                              : 'bg-green-500 hover:bg-green-600 text-white'
+                          }`}
+                        >
+                          {unlockAllLessons ? '🔓 إغلاق جميع الدروس' : '🔒 فتح جميع الدروس'}
+                        </button>
+                        <p className="text-xs text-blue-600 mt-2">
+                          {unlockAllLessons 
+                            ? '✓ الطالب يمكنه الوصول لجميع الدروس بدون قيود' 
+                            : 'ℹ️ الطالب يحتاج إكمال كل درس لفتح الدرس التالي'}
+                        </p>
+                      </div>
+                    )}
 
                     {/* تغيير كلمة المرور */}
                     <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-lg p-4 col-span-2 border-2 border-orange-200">

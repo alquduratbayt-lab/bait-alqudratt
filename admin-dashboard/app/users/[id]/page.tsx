@@ -1,9 +1,18 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function UserDetailsPage({ params }: { params: { id: string } }) {
   const router = useRouter();
+  const [unlockAllLessons, setUnlockAllLessons] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // بيانات تجريبية
   const user = {
@@ -17,6 +26,44 @@ export default function UserDetailsPage({ params }: { params: { id: string } }) 
     startDate: '01/3/2025',
     endDate: '30/3/2025',
     image: 'https://via.placeholder.com/150',
+  };
+
+  useEffect(() => {
+    fetchUserPermissions();
+  }, [params.id]);
+
+  const fetchUserPermissions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('unlock_all_lessons')
+        .eq('id', params.id)
+        .single();
+
+      if (!error && data) {
+        setUnlockAllLessons(data.unlock_all_lessons || false);
+      }
+    } catch (error) {
+      console.error('Error fetching permissions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleUnlock = async () => {
+    const newValue = !unlockAllLessons;
+    
+    const { error } = await supabase
+      .from('users')
+      .update({ unlock_all_lessons: newValue })
+      .eq('id', params.id);
+      
+    if (!error) {
+      setUnlockAllLessons(newValue);
+      alert(newValue ? 'تم فتح جميع الدروس للطالب' : 'تم إغلاق صلاحية فتح الدروس');
+    } else {
+      alert('حدث خطأ أثناء تحديث الصلاحية');
+    }
   };
 
   return (
@@ -202,8 +249,20 @@ export default function UserDetailsPage({ params }: { params: { id: string } }) 
               </div>
             </div>
 
-            {/* زر حذف الحساب */}
-            <div className="mt-8 flex justify-center">
+            {/* زر فتح/إغلاق جميع الدروس */}
+            <div className="mt-8 flex justify-center gap-4">
+              <button 
+                onClick={handleToggleUnlock}
+                disabled={loading}
+                className={`px-8 py-3 rounded-lg transition font-semibold shadow-md ${
+                  unlockAllLessons 
+                    ? 'bg-red-500 hover:bg-red-600 text-white' 
+                    : 'bg-green-500 hover:bg-green-600 text-white'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {unlockAllLessons ? '🔓 إغلاق جميع الدروس' : '🔒 فتح جميع الدروس'}
+              </button>
+              
               <button className="px-8 py-3 border-2 border-red-500 text-red-500 rounded-lg hover:bg-red-50 transition font-semibold">
                 حذف الحساب
               </button>

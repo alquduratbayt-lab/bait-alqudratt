@@ -32,10 +32,10 @@ const ParentIcon = () => (
       strokeWidth={2}
       strokeLinecap="round"
     />
-    <Circle cx={17} cy={9} r={2} stroke="#2196F3" strokeWidth={2} />
+    <Circle cx={17} cy={9} r={2} stroke="#f9a825" strokeWidth={2} />
     <Path
       d="M21 21v-1.5a3 3 0 00-3-3h-1"
-      stroke="#2196F3"
+      stroke="#f9a825"
       strokeWidth={2}
       strokeLinecap="round"
     />
@@ -58,7 +58,7 @@ const StudentIcon = () => (
       width={6}
       height={8}
       rx={0.5}
-      fill="#2196F3"
+      fill="#f9a825"
       stroke="#1a5f7a"
       strokeWidth={0.5}
     />
@@ -70,7 +70,7 @@ const StudentIcon = () => (
     {/* حقيبة مدرسية */}
     <Path
       d="M4 18h5v4H4z"
-      fill="#2196F3"
+      fill="#f9a825"
       stroke="#1a5f7a"
       strokeWidth={0.5}
     />
@@ -106,7 +106,7 @@ export default function UserTypeSelectionScreen({ navigation }) {
 
   return (
     <LinearGradient
-      colors={['#ffffff', '#e3f2fd', '#bbdefb']}
+      colors={['#e8f4f8', '#fef3e2', '#e8f4f8']}
       style={styles.container}
     >
       <StatusBar style="dark" />
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
   iconContainer: {
     marginBottom: 16,
     padding: 12,
-    backgroundColor: '#e3f2fd',
+    backgroundColor: '#e8f4f8',
     borderRadius: 50,
   },
   cardTitle: {

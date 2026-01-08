@@ -22,20 +22,20 @@ const DefaultIcon = ({ index }) => {
   const icons = [
     // أيقونة الترحيب
     <Svg width={200} height={200} viewBox="0 0 200 200" key="1">
-      <Circle cx={100} cy={100} r={80} fill="#e3f2fd" />
-      <Path d="M100 40 L100 100 L140 80" stroke="#2196F3" strokeWidth={8} strokeLinecap="round" fill="none" />
-      <Circle cx={100} cy={100} r={60} stroke="#2196F3" strokeWidth={6} fill="none" />
+      <Circle cx={100} cy={100} r={80} fill="#e8f4f8" />
+      <Path d="M100 40 L100 100 L140 80" stroke="#1a5f7a" strokeWidth={8} strokeLinecap="round" fill="none" />
+      <Circle cx={100} cy={100} r={60} stroke="#1a5f7a" strokeWidth={6} fill="none" />
     </Svg>,
     // أيقونة التعلم
     <Svg width={200} height={200} viewBox="0 0 200 200" key="2">
-      <Rect x={40} y={60} width={120} height={100} rx={10} fill="#e3f2fd" />
-      <Path d="M60 80 L140 80 M60 100 L140 100 M60 120 L140 120" stroke="#2196F3" strokeWidth={6} strokeLinecap="round" />
-      <Circle cx={100} cy={40} r={20} fill="#2196F3" />
+      <Rect x={40} y={60} width={120} height={100} rx={10} fill="#e8f4f8" />
+      <Path d="M60 80 L140 80 M60 100 L140 100 M60 120 L140 120" stroke="#1a5f7a" strokeWidth={6} strokeLinecap="round" />
+      <Circle cx={100} cy={40} r={20} fill="#1a5f7a" />
     </Svg>,
     // أيقونة التقدم
     <Svg width={200} height={200} viewBox="0 0 200 200" key="3">
-      <Path d="M100 40 L130 90 L180 100 L130 110 L100 160 L70 110 L20 100 L70 90 Z" fill="#fbbf24" />
-      <Circle cx={100} cy={100} r={30} fill="#2196F3" />
+      <Path d="M100 40 L130 90 L180 100 L130 110 L100 160 L70 110 L20 100 L70 90 Z" fill="#f9a825" />
+      <Circle cx={100} cy={100} r={30} fill="#1a5f7a" />
     </Svg>
   ];
   return icons[index] || icons[0];
@@ -156,14 +156,14 @@ export default function OnboardingScreen({ navigation }) {
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#2196F3" />
+        <ActivityIndicator size="large" color="#1a5f7a" />
       </View>
     );
   }
 
   return (
     <LinearGradient
-      colors={['#ffffff', '#e3f2fd', '#bbdefb']}
+      colors={['#e8f4f8', '#fef3e2', '#e8f4f8']}
       style={styles.container}
     >
       <StatusBar style="dark" />
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontSize: 16,
-    color: '#2196F3',
+    color: '#1a5f7a',
     fontWeight: '600',
   },
   scrollView: {
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#0d3b4d',
+    color: '#1a5f7a',
     textAlign: 'center',
     marginBottom: 20,
   },
@@ -295,11 +295,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   activeDot: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#1a5f7a',
     width: 30,
   },
   nextButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#1a5f7a',
     marginHorizontal: 40,
     marginBottom: 50,
     paddingVertical: 16,

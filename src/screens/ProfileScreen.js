@@ -108,32 +108,32 @@ const UserAvatar = ({ imageUri }) => {
 // أيقونة الرئيسية
 const HomeIcon = ({ active }) => (
   <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-    <Path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" stroke={active ? '#2196F3' : '#999'} strokeWidth={2} fill={active ? '#e3f2fd' : 'none'} />
-    <Path d="M9 22V12h6v10" stroke={active ? '#2196F3' : '#999'} strokeWidth={2} />
+    <Path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" stroke={active ? '#1a5f7a' : '#999'} strokeWidth={2} fill={active ? '#e8f4f8' : 'none'} />
+    <Path d="M9 22V12h6v10" stroke={active ? '#1a5f7a' : '#999'} strokeWidth={2} />
   </Svg>
 );
 
 // أيقونة الكتب
 const BooksIcon = ({ active }) => (
   <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-    <Path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke={active ? '#2196F3' : '#999'} strokeWidth={2} />
-    <Path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke={active ? '#2196F3' : '#999'} strokeWidth={2} fill={active ? '#e3f2fd' : 'none'} />
+    <Path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke={active ? '#1a5f7a' : '#999'} strokeWidth={2} />
+    <Path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke={active ? '#1a5f7a' : '#999'} strokeWidth={2} fill={active ? '#e8f4f8' : 'none'} />
   </Svg>
 );
 
 // أيقونة المنهج
 const CurriculumIcon = ({ active }) => (
   <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-    <Path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke={active ? '#2196F3' : '#999'} strokeWidth={2} fill={active ? '#e3f2fd' : 'none'} />
-    <Path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke={active ? '#2196F3' : '#999'} strokeWidth={2} />
+    <Path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke={active ? '#1a5f7a' : '#999'} strokeWidth={2} fill={active ? '#e8f4f8' : 'none'} />
+    <Path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke={active ? '#1a5f7a' : '#999'} strokeWidth={2} />
   </Svg>
 );
 
 // أيقونة حسابي
 const ProfileIcon = ({ active }) => (
   <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-    <Path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke={active ? '#2196F3' : '#999'} strokeWidth={2} />
-    <Circle cx={12} cy={7} r={4} stroke={active ? '#2196F3' : '#999'} strokeWidth={2} fill={active ? '#e3f2fd' : 'none'} />
+    <Path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke={active ? '#1a5f7a' : '#999'} strokeWidth={2} />
+    <Circle cx={12} cy={7} r={4} stroke={active ? '#1a5f7a' : '#999'} strokeWidth={2} fill={active ? '#e8f4f8' : 'none'} />
   </Svg>
 );
 
@@ -386,7 +386,13 @@ export default function ProfileScreen({ navigation }) {
       
       {/* الهيدر */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => {
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          } else {
+            navigation.navigate('Home');
+          }
+        }} style={styles.backButton}>
           <BackIcon />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>الملف الشخصي</Text>
@@ -718,12 +724,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   navItemActive: {
-    backgroundColor: '#e3f2fd',
+    backgroundColor: '#e8f4f8',
     paddingHorizontal: 16,
   },
   navTextActive: {
     fontSize: 12,
-    color: '#2196F3',
+    color: '#1a5f7a',
     fontWeight: '600',
   },
 });

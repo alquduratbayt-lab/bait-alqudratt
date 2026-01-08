@@ -99,10 +99,10 @@ export default function SubscriptionsScreen({ navigation }) {
   const getTierColor = (tier) => {
     const colors = {
       free: '#9ca3af',
-      basic: '#3b82f6',
-      premium: '#8b5cf6'
+      basic: '#1a5f7a',
+      premium: '#f9a825'
     };
-    return colors[tier] || '#3b82f6';
+    return colors[tier] || '#1a5f7a';
   };
 
   const formatHijriDate = (date) => {
@@ -238,7 +238,7 @@ export default function SubscriptionsScreen({ navigation }) {
       <View style={styles.container}>
         <StatusBar style="dark" />
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.backButton}>
+          <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={styles.backButton}>
             <BackIcon />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>الاشتراكات</Text>
@@ -258,7 +258,7 @@ export default function SubscriptionsScreen({ navigation }) {
       <StatusBar style="dark" />
       
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.backButton}>
+        <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={styles.backButton}>
           <BackIcon />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>الاشتراكات</Text>
@@ -858,11 +858,11 @@ const styles = StyleSheet.create({
   },
   modalConfirmButton: {
     flex: 1,
-    backgroundColor: '#2196F3',
+    backgroundColor: '#1a5f7a',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
-    shadowColor: '#2196F3',
+    shadowColor: '#1a5f7a',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,

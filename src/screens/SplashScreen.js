@@ -110,7 +110,7 @@ export default function SplashScreen({ navigation }) {
 
   return (
     <LinearGradient
-      colors={['#ffffff', '#e3f2fd', '#bbdefb']}
+      colors={['#e8f4f8', '#fef3e2', '#e8f4f8']}
       style={styles.container}
     >
       <View style={styles.content}>
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#2196F3',
+    backgroundColor: '#1a5f7a',
     marginHorizontal: 5,
     opacity: 0.3,
   },
