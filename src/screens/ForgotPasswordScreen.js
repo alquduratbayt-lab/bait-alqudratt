@@ -16,7 +16,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { supabase } from '../lib/supabase';
-import { sendOTP } from '../services/taqnyatService';
+import { sendOTPForPasswordReset } from '../services/taqnyatService';
 
 const BackIcon = () => (
   <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
@@ -75,10 +75,10 @@ export default function ForgotPasswordScreen({ navigation }) {
       }
       formatted = `+966${formatted}`;
 
-      // التحقق من وجود المستخدم
+      // التحقق من وجود المستخدم وجلب اسمه
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('id, phone')
+        .select('id, phone, name')
         .eq('phone', formatted)
         .single();
 
@@ -90,8 +90,8 @@ export default function ForgotPasswordScreen({ navigation }) {
 
       setFormattedPhone(formatted);
       
-      // إرسال OTP
-      await sendOTP(formatted);
+      // إرسال OTP مع اسم المستخدم
+      await sendOTPForPasswordReset(formatted, userData.name);
       
       // التحويل مباشرة للخطوة التالية بدون رسالة
       setStep(2);

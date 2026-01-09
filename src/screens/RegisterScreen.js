@@ -96,8 +96,8 @@ export default function RegisterScreen({ navigation }) {
       console.log('رقم الهاتف المدخل:', phone);
       console.log('رقم الهاتف المنسق:', formattedPhone);
       
-      // إرسال OTP عبر تقنيات
-      await sendOTP(formattedPhone);
+      // إرسال OTP عبر تقنيات مع اسم المستخدم
+      await sendOTP(formattedPhone, name);
 
       // الانتقال لصفحة OTP
       navigation.navigate('OTPVerification', {

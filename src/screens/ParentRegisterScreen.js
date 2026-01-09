@@ -101,8 +101,8 @@ export default function ParentRegisterScreen({ navigation }) {
       console.log('رقم الهاتف المدخل:', phone);
       console.log('رقم الهاتف المنسق:', formattedPhone);
       
-      // إرسال OTP عبر تقنيات
-      await sendOTP(formattedPhone);
+      // إرسال OTP عبر تقنيات مع اسم ولي الأمر
+      await sendOTP(formattedPhone, name);
 
       // الانتقال لصفحة OTP
       navigation.navigate('OTPVerification', {

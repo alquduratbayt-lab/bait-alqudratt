@@ -65,6 +65,16 @@ export default function OTPVerificationScreen({ route, navigation }) {
     // السماح بالأرقام فقط
     if (!/^\d*$/.test(value)) return;
 
+    // إذا تم لصق أو auto-fill كود كامل (4 أرقام)
+    if (value.length === 4 && index === 0) {
+      const digits = value.split('');
+      setOtp(digits);
+      inputRefs[3].current?.focus();
+      Keyboard.dismiss();
+      handleVerify(value);
+      return;
+    }
+
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
@@ -327,7 +337,8 @@ export default function OTPVerificationScreen({ route, navigation }) {
               onChangeText={(value) => handleOtpChange(value, index)}
               onKeyPress={(e) => handleKeyPress(e, index)}
               keyboardType="number-pad"
-              maxLength={1}
+              maxLength={index === 0 ? 4 : 1}
+              textContentType={index === 0 ? "oneTimeCode" : "none"}
               selectTextOnFocus
               editable={!loading}
             />
