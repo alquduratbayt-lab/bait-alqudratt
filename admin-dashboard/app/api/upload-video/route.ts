@@ -6,7 +6,7 @@ export const maxDuration = 300; // 5 minutes timeout for large videos
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    const fileEntry = formData.get('file');
+    const fileEntry = formData.get('file') as FormDataEntryValue | null;
     const file = fileEntry instanceof File ? fileEntry : null;
 
     if (!file) {
