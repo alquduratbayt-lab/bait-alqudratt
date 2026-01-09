@@ -6,6 +6,7 @@ export const maxDuration = 300; // 5 minutes timeout for large videos
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
+    // @ts-ignore - FormData.get() is supported in Next.js runtime
     const fileEntry = formData.get('file') as FormDataEntryValue | null;
     const file = fileEntry instanceof File ? fileEntry : null;
 
