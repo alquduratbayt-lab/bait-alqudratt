@@ -55,6 +55,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
 
   const handleLogout = async () => {
     await fetch('/api/admin/logout', { method: 'POST' });
+    localStorage.removeItem('admin');
     window.location.href = '/admin-login';
   };
 
