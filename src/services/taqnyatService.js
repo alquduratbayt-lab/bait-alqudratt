@@ -6,8 +6,8 @@ const TAQNYAT_API_URL = 'https://api.taqnyat.sa/v1/messages';
 
 export const sendOTP = async (phone) => {
   try {
-    // استخدام كود افتراضي مؤقتاً حتى يتم تفعيل اسم المرسل في تقنيات
-    const otp = '5555';
+    // توليد كود عشوائي من 4 أرقام
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
     
     // حساب وقت انتهاء الصلاحية (5 دقائق)
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
@@ -33,33 +33,29 @@ export const sendOTP = async (phone) => {
       throw new Error('فشل حفظ رمز التحقق');
     }
     
-    // تعطيل إرسال SMS مؤقتاً - استخدام كود افتراضي
-    console.log(`⚠️ وضع التطوير: استخدم الكود ${otp} للتحقق`);
+    // إرسال SMS عبر تقنيات
+    const message = `رمز التحقق الخاص بك: ${otp}\nصالح لمدة 5 دقائق`;
     
-    // محاولة إرسال SMS (اختياري - سيفشل لكن لن يوقف العملية)
-    try {
-      const message = `رمز التحقق الخاص بك: ${otp}\nصالح لمدة 5 دقائق`;
-      
-      const response = await fetch(TAQNYAT_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${TAQNYAT_API_KEY}`,
-        },
-        body: JSON.stringify({
-          recipients: [formattedPhone],
-          body: message,
-          sender: TAQNYAT_SENDER_NAME,
-        }),
-      });
-      
-      if (response.ok) {
-        console.log('✅ تم إرسال SMS بنجاح');
-      }
-    } catch (smsError) {
-      console.log('⚠️ فشل إرسال SMS - استخدم الكود الافتراضي:', otp);
+    const response = await fetch(TAQNYAT_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${TAQNYAT_API_KEY}`,
+      },
+      body: JSON.stringify({
+        recipients: [formattedPhone],
+        body: message,
+        sender: TAQNYAT_SENDER_NAME,
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Taqnyat API error:', errorData);
+      throw new Error('فشل إرسال رمز التحقق');
     }
     
+    console.log('✅ تم إرسال رمز التحقق بنجاح');
     return { success: true, phone: formattedPhone };
     
   } catch (error) {
