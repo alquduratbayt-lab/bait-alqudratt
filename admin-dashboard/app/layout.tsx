@@ -10,8 +10,8 @@ const cairo = Cairo({
 });
 
 export const metadata: Metadata = {
-  title: "لوحة تحكم بيت القدرات",
-  description: "نظام إدارة بيت القدرات التعليمي",
+  title: "بيت القدرات",
+  description: "منصة تعليمية متكاملة لتطوير قدرات الطلاب",
 };
 
 export default function RootLayout({
