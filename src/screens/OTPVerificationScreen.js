@@ -65,16 +65,6 @@ export default function OTPVerificationScreen({ route, navigation }) {
     // السماح بالأرقام فقط
     if (!/^\d*$/.test(value)) return;
 
-    // إذا تم لصق أو auto-fill كود كامل (4 أرقام)
-    if (value.length === 4 && index === 0) {
-      const digits = value.split('');
-      setOtp(digits);
-      inputRefs[3].current?.focus();
-      Keyboard.dismiss();
-      handleVerify(value);
-      return;
-    }
-
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
@@ -91,6 +81,24 @@ export default function OTPVerificationScreen({ route, navigation }) {
         Keyboard.dismiss();
         handleVerify(fullOtp);
       }
+    }
+  };
+
+  const handleHiddenOtpChange = (value) => {
+    // السماح بالأرقام فقط
+    if (!/^\d*$/.test(value)) return;
+
+    // تحديث الخانات بناءً على القيمة (كتابة يدوية أو auto-fill)
+    const digits = value.substring(0, 4).split('');
+    while (digits.length < 4) {
+      digits.push('');
+    }
+    setOtp(digits);
+
+    // إذا اكتمل 4 أرقام، التحقق تلقائياً
+    if (value.length === 4) {
+      Keyboard.dismiss();
+      handleVerify(value);
     }
   };
 
@@ -324,26 +332,47 @@ export default function OTPVerificationScreen({ route, navigation }) {
           <Text style={styles.phone}>{maskedPhone}</Text>
         </Text>
 
-        <View style={styles.otpContainer}>
+        <TouchableOpacity 
+          style={styles.otpContainer}
+          activeOpacity={1}
+          onPress={() => inputRefs[0].current?.focus()}
+        >
+          {/* حقل شفاف يغطي الخانات الأربع لاستقبال auto-fill والكتابة اليدوية */}
+          <TextInput
+            ref={inputRefs[0]}
+            style={[
+              styles.otpInput,
+              {
+                position: 'absolute',
+                width: '100%',
+                height: '100%',
+                opacity: 0,
+                zIndex: 1,
+              }
+            ]}
+            value={otp.join('')}
+            onChangeText={handleHiddenOtpChange}
+            keyboardType="number-pad"
+            textContentType="oneTimeCode"
+            autoComplete="sms-otp"
+            maxLength={4}
+            caretHidden
+            editable={!loading}
+          />
+          
+          {/* الخانات المرئية للعرض فقط */}
           {otp.map((digit, index) => (
-            <TextInput
+            <View
               key={index}
-              ref={inputRefs[index]}
               style={[
                 styles.otpInput,
                 digit && styles.otpInputFilled
               ]}
-              value={digit}
-              onChangeText={(value) => handleOtpChange(value, index)}
-              onKeyPress={(e) => handleKeyPress(e, index)}
-              keyboardType="number-pad"
-              maxLength={index === 0 ? 4 : 1}
-              textContentType={index === 0 ? "oneTimeCode" : "none"}
-              selectTextOnFocus
-              editable={!loading}
-            />
+            >
+              <Text style={styles.otpText}>{digit}</Text>
+            </View>
           ))}
-        </View>
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.verifyButton, loading && { opacity: 0.6 }]}
@@ -448,6 +477,13 @@ const styles = StyleSheet.create({
   otpInputFilled: {
     borderColor: '#2196F3',
     backgroundColor: '#e3f2fd',
+  },
+  otpText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+    lineHeight: 60,
   },
   verifyButton: {
     backgroundColor: '#2196F3',

@@ -127,6 +127,22 @@ export default function ForgotPasswordScreen({ navigation }) {
     }
   };
 
+  const handleHiddenOtpChange = (value) => {
+    if (!/^\d*$/.test(value)) return;
+
+    // تحديث الخانات بناءً على القيمة (كتابة يدوية أو auto-fill)
+    const digits = value.substring(0, 4).split('');
+    while (digits.length < 4) {
+      digits.push('');
+    }
+    setOtp(digits);
+
+    // إذا اكتمل 4 أرقام، التحقق تلقائياً
+    if (value.length === 4) {
+      handleVerifyOTP(value);
+    }
+  };
+
   const handleKeyPress = (e, index) => {
     if (e.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
       inputRefs[index - 1].current?.focus();
@@ -315,25 +331,47 @@ export default function ForgotPasswordScreen({ navigation }) {
           {/* الخطوة 2: OTP */}
           {step === 2 && (
             <>
-              <View style={styles.otpContainer}>
+              <TouchableOpacity 
+                style={styles.otpContainer}
+                activeOpacity={1}
+                onPress={() => inputRefs[0].current?.focus()}
+              >
+                {/* حقل شفاف يغطي الخانات الأربع لاستقبال auto-fill والكتابة اليدوية */}
+                <TextInput
+                  ref={inputRefs[0]}
+                  style={[
+                    styles.otpInput,
+                    {
+                      position: 'absolute',
+                      width: '100%',
+                      height: '100%',
+                      opacity: 0,
+                      zIndex: 1,
+                    }
+                  ]}
+                  value={otp.join('')}
+                  onChangeText={handleHiddenOtpChange}
+                  keyboardType="number-pad"
+                  textContentType="oneTimeCode"
+                  autoComplete="sms-otp"
+                  maxLength={4}
+                  caretHidden
+                  editable={!loading}
+                />
+                
+                {/* الخانات المرئية للعرض فقط */}
                 {otp.map((digit, index) => (
-                  <TextInput
+                  <View
                     key={index}
-                    ref={inputRefs[index]}
                     style={[
                       styles.otpInput,
                       digit && styles.otpInputFilled
                     ]}
-                    value={digit}
-                    onChangeText={(value) => handleOtpChange(value, index)}
-                    onKeyPress={(e) => handleKeyPress(e, index)}
-                    keyboardType="number-pad"
-                    maxLength={1}
-                    selectTextOnFocus
-                    editable={!loading}
-                  />
+                  >
+                    <Text style={styles.otpText}>{digit}</Text>
+                  </View>
                 ))}
-              </View>
+              </TouchableOpacity>
 
               <TouchableOpacity 
                 style={[styles.submitButton, loading && styles.submitButtonDisabled]} 
@@ -601,6 +639,13 @@ const styles = StyleSheet.create({
   otpInputFilled: {
     borderColor: '#1a5f7a',
     backgroundColor: '#e3f2fd',
+  },
+  otpText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+    lineHeight: 60,
   },
   modalOverlay: {
     flex: 1,
