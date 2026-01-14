@@ -182,19 +182,16 @@ export default function ProfileScreen({ navigation }) {
 
       // جلب جميع البيانات بشكل متوازي (أسرع!)
       const [userInfo, progressData, totalLessons] = await Promise.all([
-        fetchWithCache(
-          `user_profile_${user.id}`,
-          async () => {
-            const { data, error } = await supabase
-              .from('users')
-              .select('*')
-              .eq('id', user.id)
-              .single();
-            if (error) throw error;
-            return data;
-          },
-          2 * 60 * 1000
-        ),
+        // جلب مباشر بدون cache - للحصول على حالة الاشتراك اللحظية
+        (async () => {
+          const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+          if (error) throw error;
+          return data;
+        })(),
         fetchWithCache(
           `student_progress_profile_${user.id}`,
           async () => {

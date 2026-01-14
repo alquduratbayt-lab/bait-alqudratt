@@ -9,6 +9,7 @@ import RichTextEditor from '@/components/RichTextEditor';
 import MathEditor from '@/components/MathEditor';
 import { latexToImage } from '@/lib/latexToImage';
 import { uploadToCloudflareStream } from '@/lib/cloudflare';
+import VideoPreviewModal from './VideoPreviewModal';
 
 interface Lesson {
   id: string;
@@ -77,6 +78,10 @@ export default function LessonsPage() {
   const [selectedQuestionIndex, setSelectedQuestionIndex] = useState<number | null>(null);
   const [questionVariants, setQuestionVariants] = useState<any[]>([]);
   const [loadingVariants, setLoadingVariants] = useState(false);
+  
+  // Video Preview States
+  const [showVideoPreview, setShowVideoPreview] = useState(false);
+  const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSubject();
@@ -730,6 +735,18 @@ export default function LessonsPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                       </svg>
                       <span>فيديو تعليمي</span>
+                      {lesson.video_url && (
+                        <button
+                          onClick={() => {
+                            setPreviewVideoUrl(lesson.video_url);
+                            setShowVideoPreview(true);
+                          }}
+                          className="mr-auto text-indigo-600 hover:text-indigo-800 font-semibold"
+                          title="معاينة الفيديو"
+                        >
+                          👁️ معاينة
+                        </button>
+                      )}
                     </div>
 
                     <div className="flex gap-2">
@@ -1482,6 +1499,13 @@ export default function LessonsPage() {
         ) : null}
       </div>
       </div>
+
+      {/* Video Preview Modal */}
+      <VideoPreviewModal
+        isOpen={showVideoPreview}
+        onClose={() => setShowVideoPreview(false)}
+        videoUrl={previewVideoUrl}
+      />
     </DashboardLayout>
   );
 }

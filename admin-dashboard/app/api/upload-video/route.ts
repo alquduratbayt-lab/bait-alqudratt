@@ -77,6 +77,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. إرجاع معلومات الفيديو
+    // استخدام HLS - متاح فوراً ويعمل مع expo-video بشكل ممتاز
     const playbackUrl = `https://${cdnHostname}/${videoId}/playlist.m3u8`;
     const thumbnailUrl = `https://${cdnHostname}/${videoId}/thumbnail.jpg`;
 

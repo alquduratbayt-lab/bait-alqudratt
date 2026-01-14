@@ -97,20 +97,14 @@ export default function LessonsScreen({ navigation, route }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
-      const { fetchWithCache } = require('../lib/cacheService');
+      // جلب مباشر بدون cache - للحصول على حالة الاشتراك اللحظية
+      const { data, error } = await supabase
+        .from('users')
+        .select('subscription_tier, subscription_end, unlock_all_lessons')
+        .eq('id', user.id)
+        .single();
       
-      const data = await fetchWithCache(
-        `user_subscription_${user.id}`,
-        async () => {
-          const { data, error } = await supabase
-            .from('users')
-            .select('subscription_tier, subscription_end, unlock_all_lessons')
-            .eq('id', user.id)
-            .single();
-          if (error) throw error;
-          return data;
-        }
-      );
+      if (error) throw error;
       
       setUserSubscription(data);
       setUnlockAllLessons(data?.unlock_all_lessons || false);

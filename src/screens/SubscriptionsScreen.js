@@ -175,22 +175,14 @@ export default function SubscriptionsScreen({ navigation }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { fetchWithCache } = require('../lib/cacheService');
+      // جلب مباشر بدون cache - للحصول على حالة الاشتراك اللحظية
+      const { data, error } = await supabase
+        .from('users')
+        .select('subscription_tier, subscription_end, subscription_status')
+        .eq('id', user.id)
+        .single();
       
-      const data = await fetchWithCache(
-        `user_subscription_${user.id}`,
-        async () => {
-          const { data, error } = await supabase
-            .from('users')
-            .select('subscription_tier, subscription_end, subscription_status')
-            .eq('id', user.id)
-            .single();
-          if (error) throw error;
-          return data;
-        },
-        2 * 60 * 1000 // 2 دقيقة
-      );
-
+      if (error) throw error;
       if (!data) return;
       
       // التحقق من وجود اشتراك نشط

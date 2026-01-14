@@ -33,7 +33,8 @@
       }
     },
     "plugins": [
-      "expo-notifications"
+      "expo-notifications",
+      "expo-video"
     ],
     "extra": {
       "moyasarPublishableKey": "pk_test_ijJF2iPkzA26ooHsaBAjPugoHUzv9fjSWTYVYiHZ",

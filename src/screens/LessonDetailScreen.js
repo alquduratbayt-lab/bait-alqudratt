@@ -97,6 +97,7 @@ const getVideoType = (url) => {
   if (!url) return 'none';
   if (url.includes('youtube.com') || url.includes('youtu.be')) return 'youtube';
   if (url.includes('vimeo.com')) return 'vimeo';
+  if (url.includes('.m3u8')) return 'hls';
   return 'direct';
 };
 
@@ -412,6 +413,12 @@ export default function LessonDetailScreen({ navigation, route }) {
       );
 
       setLessonData(lessonInfo);
+      
+      // طباعة رابط الفيديو للتشخيص
+      console.log('=== VIDEO DEBUG INFO ===');
+      console.log('Video URL:', lessonInfo?.video_url);
+      console.log('Video Type:', getVideoType(lessonInfo?.video_url));
+      console.log('========================');
 
       // جلب الأسئلة مع النسخ البديلة مع Cache
       const questionsData = await fetchWithCache(
@@ -472,17 +479,41 @@ export default function LessonDetailScreen({ navigation, route }) {
   };
 
   const onPlaybackStatusUpdate = async (status) => {
+    console.log('📹 onPlaybackStatusUpdate called:', {
+      isLoaded: status.isLoaded,
+      isPlaying: status.isPlaying,
+      positionMillis: status.positionMillis,
+      durationMillis: status.durationMillis,
+      error: status.error
+    });
+    
     setVideoStatus(status);
     videoStatusRef.current = status;
     
+    // إذا كان هناك خطأ، اطبعه
+    if (status.error) {
+      console.error('❌ VIDEO PLAYBACK ERROR:', status.error);
+    }
+    
     if (status.isLoaded) {
+      console.log('✅ Video is loaded successfully');
       setIsPlaying(status.isPlaying);
       
       // استعادة موضع الفيديو المحفوظ عند أول تشغيل مرة واحدة فقط
-      if (savedPosition > 0 && !hasRestoredPosition.current) {
+      if (savedPosition > 0 && !hasRestoredPosition.current && status.isPlaying && status.durationMillis > 0) {
         console.log('Restoring video position to:', savedPosition, 'seconds');
         hasRestoredPosition.current = true;
-        await videoRef.current?.setPositionAsync(savedPosition * 1000);
+        
+        // التأكد من أن الموقع المحفوظ لا يتجاوز مدة الفيديو
+        const maxPosition = Math.floor(status.durationMillis / 1000);
+        const targetPosition = Math.min(savedPosition, maxPosition - 5);
+        
+        if (targetPosition > 0) {
+          await videoRef.current?.setPositionAsync(targetPosition * 1000, {
+            toleranceMillisBefore: 1000,
+            toleranceMillisAfter: 1000
+          });
+        }
         setSavedPosition(0);
       }
       
@@ -500,7 +531,6 @@ export default function LessonDetailScreen({ navigation, route }) {
           setCurrentQuestion(questionToShow);
           setSelectedAnswer(null);
           // قفل الشاشة على الوضع العمودي عند ظهور السؤال
-          console.log('Locking screen to portrait for question');
           ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
         }
       }
@@ -778,6 +808,20 @@ export default function LessonDetailScreen({ navigation, route }) {
                   onPlaybackStatusUpdate={onPlaybackStatusUpdate}
                   progressUpdateIntervalMillis={500}
                   isMuted={false}
+                  onError={(error) => {
+                    console.error('❌ VIDEO ERROR:', error);
+                    console.error('Video URL that failed:', lessonData.video_url);
+                  }}
+                  onLoad={() => {
+                    console.log('✅ VIDEO LOADED SUCCESSFULLY');
+                    console.log('Video URL:', lessonData.video_url);
+                  }}
+                  onLoadStart={() => {
+                    console.log('🔄 VIDEO LOAD STARTED');
+                  }}
+                  onReadyForDisplay={() => {
+                    console.log('🎬 VIDEO READY FOR DISPLAY');
+                  }}
                 />
                 <TouchableOpacity 
                   style={styles.videoOverlay}
