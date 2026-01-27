@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  Image,
+  Animated,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Path, Circle, Rect, Polygon } from 'react-native-svg';
@@ -14,6 +16,95 @@ import { supabase } from '../lib/supabase';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import HtmlRenderer from '../components/HtmlRenderer';
 import { addExamCompletionPoints } from '../lib/pointsService';
+
+// Skeleton Loader للسؤال
+const QuestionSkeleton = () => {
+  const animatedValue = new Animated.Value(0);
+  
+  React.useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(animatedValue, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(animatedValue, {
+          toValue: 0,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    animation.start();
+    return () => animation.stop();
+  }, []);
+
+  const opacity = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.3, 0.7],
+  });
+
+  return (
+    <View style={skeletonStyles.container}>
+      <Animated.View style={[skeletonStyles.questionNumber, { opacity }]} />
+      <Animated.View style={[skeletonStyles.questionText, { opacity }]} />
+      <Animated.View style={[skeletonStyles.questionTextShort, { opacity }]} />
+      
+      {[1, 2, 3, 4].map((item) => (
+        <Animated.View key={item} style={[skeletonStyles.option, { opacity }]} />
+      ))}
+      
+      <Animated.View style={[skeletonStyles.button, { opacity }]} />
+    </View>
+  );
+};
+
+const skeletonStyles = StyleSheet.create({
+  container: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    margin: 20,
+  },
+  questionNumber: {
+    width: 120,
+    height: 16,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 4,
+    marginBottom: 15,
+    alignSelf: 'flex-end',
+  },
+  questionText: {
+    width: '100%',
+    height: 20,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 4,
+    marginBottom: 10,
+  },
+  questionTextShort: {
+    width: '70%',
+    height: 20,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 4,
+    marginBottom: 20,
+    alignSelf: 'flex-end',
+  },
+  option: {
+    width: '100%',
+    height: 50,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  button: {
+    width: '100%',
+    height: 50,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 10,
+    marginTop: 10,
+  },
+});
 
 // أيقونة التخرج
 const GraduationCapIcon = () => (
@@ -85,6 +176,7 @@ export default function ExamScreen({ navigation, route }) {
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [answers, setAnswers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [questionLoading, setQuestionLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -130,8 +222,13 @@ export default function ExamScreen({ navigation, route }) {
     setAnswers(newAnswers);
 
     if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      // عرض skeleton أثناء الانتقال للسؤال التالي
+      setQuestionLoading(true);
       setSelectedAnswer(null);
+      setTimeout(() => {
+        setCurrentQuestionIndex(currentQuestionIndex + 1);
+        setQuestionLoading(false);
+      }, 300);
     } else {
       // حساب النتيجة وحفظها
       const correctCount = newAnswers.filter(a => a.isCorrect).length;
@@ -312,14 +409,10 @@ export default function ExamScreen({ navigation, route }) {
                   </View>
                 </View>
                 
-                <TouchableOpacity
-                  style={styles.subscribeNowButton}
-                  onPress={() => {
-                    navigation.navigate('Subscriptions');
-                  }}
-                >
-                  <Text style={styles.subscribeNowButtonText}>اشترك الآن</Text>
-                </TouchableOpacity>
+                <View style={styles.websiteNotice}>
+                  <Text style={styles.websiteText}>للاشتراك، قم بزيارة موقعنا</Text>
+                  <Text style={styles.websiteUrl}>bait-alqudratt.com</Text>
+                </View>
                 
                 <TouchableOpacity
                   style={styles.backButton}
@@ -360,54 +453,68 @@ export default function ExamScreen({ navigation, route }) {
       </View>
 
       <ScrollView style={styles.content}>
-        <View style={styles.questionCard}>
-          <Text style={styles.questionNumber}>السؤال {currentQuestionIndex + 1} من {questions.length}</Text>
-          <HtmlRenderer html={currentQuestion.question_text} style={styles.questionText} />
+        {questionLoading ? (
+          <QuestionSkeleton />
+        ) : (
+          <View style={styles.questionCard}>
+            <Text style={styles.questionNumber}>السؤال {currentQuestionIndex + 1} من {questions.length}</Text>
+            
+            {currentQuestion.question_image_url ? (
+              <Image 
+                source={{ uri: currentQuestion.question_image_url }} 
+                style={styles.questionImage}
+                resizeMode="contain"
+              />
+            ) : (
+              <HtmlRenderer html={currentQuestion.question_text} style={styles.questionText} />
+            )}
 
-          <View style={styles.optionsContainer}>
-            {['A', 'B', 'C', 'D'].map((option) => (
-              <TouchableOpacity
-                key={option}
-                style={[
-                  styles.optionButton,
-                  selectedAnswer === option && styles.optionButtonSelected
-                ]}
-                onPress={() => setSelectedAnswer(option)}
-              >
-                <View style={[
-                  styles.optionCircle,
-                  selectedAnswer === option && styles.optionCircleSelected
-                ]} />
-                <View style={{ flex: 1, flexDirection: 'row' }}>
-                  <Text style={[
-                    styles.optionText,
-                    selectedAnswer === option && styles.optionTextSelected
-                  ]}>
-                    {option}.{' '}
-                  </Text>
-                  <View style={{ flex: 1 }}>
-                    <HtmlRenderer 
-                      html={currentQuestion[`option_${option.toLowerCase()}`]} 
-                      style={[
+            <View style={styles.optionsContainer}>
+              {['A', 'B', 'C', 'D'].map((option, index) => {
+                const arabicLetters = ['أ', 'ب', 'ج', 'د'];
+                return (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.optionButton,
+                      selectedAnswer === option && styles.optionButtonSelected,
+                      { flexDirection: 'row-reverse', justifyContent: 'flex-end' }
+                    ]}
+                    onPress={() => setSelectedAnswer(option)}
+                  >
+                    <View style={{ flexDirection: 'row-reverse', alignItems: 'center', flex: 1 }}>
+                      <Text style={[
                         styles.optionText,
-                        selectedAnswer === option && styles.optionTextSelected
-                      ]} 
-                    />
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
+                        selectedAnswer === option && styles.optionTextSelected,
+                        { fontWeight: 'bold', marginLeft: 10, fontSize: 18 }
+                      ]}>
+                        {arabicLetters[index]}.
+                      </Text>
+                      <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                        <HtmlRenderer 
+                          html={currentQuestion[`option_${option.toLowerCase()}`]} 
+                          style={[
+                            styles.optionText,
+                            selectedAnswer === option && styles.optionTextSelected
+                          ]} 
+                        />
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
 
-          <TouchableOpacity
-            style={styles.nextButton}
-            onPress={handleNext}
-          >
-            <Text style={styles.nextButtonText}>
-              {currentQuestionIndex < questions.length - 1 ? 'التالي' : 'إنهاء الامتحان'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              style={styles.nextButton}
+              onPress={handleNext}
+            >
+              <Text style={styles.nextButtonText}>
+                {currentQuestionIndex < questions.length - 1 ? 'التالي' : 'إنهاء الامتحان'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -479,6 +586,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'right',
     lineHeight: 28,
+  },
+  questionImage: {
+    width: '100%',
+    height: undefined,
+    aspectRatio: 1.5,
+    marginBottom: 20,
+    borderRadius: 12,
   },
   optionsContainer: {
     marginBottom: 20,
@@ -604,6 +718,26 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
     textAlign: 'center',
+  },
+  websiteNotice: {
+    backgroundColor: '#e3f2fd',
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#2196F3',
+    borderStyle: 'dashed',
+  },
+  websiteText: {
+    fontSize: 14,
+    color: '#1976D2',
+    marginBottom: 4,
+  },
+  websiteUrl: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1565C0',
     marginBottom: 12,
   },
   benefitsList: {

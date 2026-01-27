@@ -49,14 +49,15 @@ import ParentRegisterScreen from './src/screens/ParentRegisterScreen';
 import ParentTicketScreen from './src/screens/ParentTicketScreen';
 import ParentTicketDetailScreen from './src/screens/ParentTicketDetailScreen';
 import WaitingApprovalScreen from './src/screens/WaitingApprovalScreen';
-import SubscriptionsScreen from './src/screens/SubscriptionsScreen';
+// import SubscriptionsScreen from './src/screens/SubscriptionsScreen'; // تم إخفاء الاشتراكات
 import TrainingScreen from './src/screens/TrainingScreen';
-import PaymentScreen from './src/screens/PaymentScreen';
+// import PaymentScreen from './src/screens/PaymentScreen'; // تم إخفاء الدفع
 import OTPVerificationScreen from './src/screens/OTPVerificationScreen';
 import UserTypeSelectionScreen from './src/screens/UserTypeSelectionScreen';
 import PlacementTestScreen from './src/screens/PlacementTestScreen';
 import PlacementTestResultsScreen from './src/screens/PlacementTestResultsScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
+import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -162,9 +163,10 @@ export default function App() {
         <Stack.Screen name="ParentEditProfile" component={ParentEditProfileScreen} />
         <Stack.Screen name="ParentTicket" component={ParentTicketScreen} />
         <Stack.Screen name="ParentTicketDetail" component={ParentTicketDetailScreen} />
-        <Stack.Screen name="Subscriptions" component={SubscriptionsScreen} />
+        {/* <Stack.Screen name="Subscriptions" component={SubscriptionsScreen} /> */}
         <Stack.Screen name="Training" component={TrainingScreen} />
-        <Stack.Screen name="Payment" component={PaymentScreen} />
+        <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+        {/* <Stack.Screen name="Payment" component={PaymentScreen} /> */}
       </Stack.Navigator>
     </NavigationContainer>
   );

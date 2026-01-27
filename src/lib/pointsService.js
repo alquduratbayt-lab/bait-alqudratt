@@ -176,15 +176,26 @@ export const addExamCompletionPoints = async (userId, examId, examTitle, percent
     // فحص حالة اشتراك الطالب
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('subscription_tier')
+      .select('subscription_tier, subscription_end')
       .eq('id', userId)
       .single();
 
     if (userError) throw userError;
 
-    // إذا كان الطالب غير مشترك، لا يحصل على نقاط
-    if (userData?.subscription_tier === 'free' || !userData?.subscription_tier) {
-      console.log('⚠️ الطالب غير مشترك - لا يحصل على نقاط');
+    // التحقق من انتهاء الاشتراك
+    let isExpired = false;
+    if (userData?.subscription_end) {
+      const endDate = new Date(userData.subscription_end);
+      const today = new Date();
+      if (endDate < today) {
+        isExpired = true;
+        console.log('⚠️ الاشتراك منتهي في:', userData.subscription_end);
+      }
+    }
+
+    // إذا كان الطالب غير مشترك أو منتهي اشتراكه، لا يحصل على نقاط
+    if (userData?.subscription_tier === 'free' || !userData?.subscription_tier || isExpired) {
+      console.log('⚠️ الطالب غير مشترك أو منتهي اشتراكه - لا يحصل على نقاط');
       return { 
         success: true, 
         points: 0, 

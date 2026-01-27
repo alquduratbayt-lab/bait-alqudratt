@@ -20,23 +20,25 @@ serve(async (req) => {
     const payload = await req.json()
     console.log('🔔 Webhook received:', JSON.stringify(payload))
 
-    const { type, data } = payload
-
-    // قبول جميع أنواع events المتعلقة بالدفع
-    if (!type || !data) {
-      console.log('Invalid payload:', payload)
-      return new Response(
-        JSON.stringify({ message: 'Invalid payload' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      )
+    // Moyasar قد يرسل البيانات بعدة طرق
+    let paymentData = payload.data || payload
+    let eventType = payload.type || 'payment'
+    
+    // إذا كان الـ payload يحتوي على id مباشرة، استخدمه
+    if (payload.id && !payload.data) {
+      paymentData = payload
     }
 
-    console.log('Event type:', type)
-    console.log('Payment data:', JSON.stringify(data))
+    console.log('Event type:', eventType)
+    console.log('Payment data:', JSON.stringify(paymentData))
 
-    const paymentId = data.id
-    const status = data.status
-    const metadata = data.metadata || {}
+    const paymentId = paymentData.id
+    const status = paymentData.status
+    const metadata = paymentData.metadata || {}
+    
+    console.log('Payment ID:', paymentId)
+    console.log('Status:', status)
+    console.log('Metadata:', JSON.stringify(metadata))
 
     // تحديث فقط إذا كان الدفع ناجح
     if (status !== 'paid') {
@@ -52,10 +54,10 @@ serve(async (req) => {
       .from('payments')
       .update({
         status: status === 'paid' ? 'paid' : 'failed',
-        payment_method: data.source?.type || null,
-        card_brand: data.source?.company || null,
-        card_last_four: data.source?.number?.slice(-4) || null,
-        metadata: data,
+        payment_method: paymentData.source?.type || null,
+        card_brand: paymentData.source?.company || null,
+        card_last_four: paymentData.source?.number?.slice(-4) || null,
+        metadata: paymentData,
         updated_at: new Date().toISOString()
       })
       .eq('moyasar_payment_id', paymentId)

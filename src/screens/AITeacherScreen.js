@@ -334,7 +334,6 @@ export default function AITeacherScreen({ navigation }) {
       return (
         <SubscriptionCard 
           data={item.data}
-          onRenew={() => navigation.navigate('Subscriptions')}
         />
       );
     }
@@ -388,15 +387,11 @@ export default function AITeacherScreen({ navigation }) {
         visible={alertVisible}
         type="warning"
         title="اشترك للوصول"
-        message="المعلم الذكي متاح فقط للمشتركين. اشترك الآن للاستفادة من هذه الميزة الرائعة!"
+        message="المعلم الذكي متاح فقط للمشتركين. للاشتراك، قم بزيارة موقعنا: bait-alqudratt.com"
         buttons={[
-          { text: 'إلغاء', style: 'cancel', onPress: () => {
+          { text: 'حسناً', onPress: () => {
             setAlertVisible(false);
             navigation.navigate('Home');
-          }},
-          { text: 'اشترك الآن', onPress: () => {
-            setAlertVisible(false);
-            navigation.navigate('Subscriptions');
           }}
         ]}
         onClose={() => {

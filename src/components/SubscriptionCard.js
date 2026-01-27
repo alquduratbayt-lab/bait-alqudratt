@@ -132,10 +132,11 @@ const SubscriptionCard = ({ data, onRenew }) => {
         </View>
       </View>
 
-      {onRenew && data.tier !== 'free' && (
-        <TouchableOpacity style={styles.renewButton} onPress={onRenew}>
-          <Text style={styles.renewButtonText}>تجديد الاشتراك</Text>
-        </TouchableOpacity>
+      {data.tier !== 'free' && data.status !== 'active' && (
+        <View style={styles.websiteNotice}>
+          <Text style={styles.websiteText}>للتجديد، قم بزيارة موقعنا</Text>
+          <Text style={styles.websiteUrl}>bait-alqudratt.com</Text>
+        </View>
       )}
     </View>
   );
@@ -286,6 +287,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#fff',
+  },
+  websiteNotice: {
+    marginTop: 12,
+    backgroundColor: '#e3f2fd',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#2196F3',
+    borderStyle: 'dashed',
+  },
+  websiteText: {
+    fontSize: 13,
+    color: '#1976D2',
+    marginBottom: 4,
+  },
+  websiteUrl: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#1565C0',
   },
 });
 

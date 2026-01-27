@@ -75,7 +75,7 @@ const AnalyticsIcon = () => (
   </Svg>
 );
 
-export default function SubscriptionModal({ visible, onClose, onSubscribe }) {
+export default function SubscriptionModal({ visible, onClose, onSubscribe, hideSubscribeButton = false }) {
   return (
     <Modal
       visible={visible}
@@ -92,10 +92,16 @@ export default function SubscriptionModal({ visible, onClose, onSubscribe }) {
             </View>
 
             {/* العنوان */}
-            <Text style={styles.title}>جاهز لتحقيق حلمك في اختبار القدرات؟</Text>
+            <Text style={styles.title}>هذا المحتوى للمشتركين فقط</Text>
             
             {/* الوصف */}
-            <Text style={styles.description}>اشترك الآن واحصل على:</Text>
+            <Text style={styles.description}>للاشتراك والحصول على جميع المميزات:</Text>
+
+            {/* رسالة الموقع */}
+            <View style={styles.websiteNotice}>
+              <Text style={styles.websiteText}>قم بزيارة موقعنا</Text>
+              <Text style={styles.websiteUrl}>bait-alqudratt.com</Text>
+            </View>
 
             {/* المميزات */}
             <View style={styles.featuresContainer}>
@@ -135,20 +141,13 @@ export default function SubscriptionModal({ visible, onClose, onSubscribe }) {
               </View>
             </View>
 
-            {/* الأزرار */}
+            {/* زر الإغلاق فقط */}
             <View style={styles.buttonsContainer}>
               <TouchableOpacity 
-                style={styles.subscribeButton}
-                onPress={onSubscribe}
-              >
-                <Text style={styles.subscribeButtonText}>اشترك الآن</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.laterButton}
+                style={styles.closeButton}
                 onPress={onClose}
               >
-                <Text style={styles.laterButtonText}>لاحقاً</Text>
+                <Text style={styles.closeButtonText}>حسناً</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -261,6 +260,39 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#666',
     fontWeight: '600',
+    textAlign: 'center',
+  },
+  websiteNotice: {
+    backgroundColor: '#e3f2fd',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#2196F3',
+    borderStyle: 'dashed',
+  },
+  websiteText: {
+    fontSize: 14,
+    color: '#1976D2',
+    marginBottom: 4,
+  },
+  websiteUrl: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1565C0',
+  },
+  closeButton: {
+    width: '100%',
+    backgroundColor: '#2196F3',
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    borderRadius: 12,
+  },
+  closeButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
     textAlign: 'center',
   },
 });

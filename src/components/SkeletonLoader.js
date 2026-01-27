@@ -125,6 +125,29 @@ export const FormFieldSkeleton = () => {
   );
 };
 
+/**
+ * Skeleton للسؤال في صفحة الدرس
+ */
+export const QuestionSkeleton = () => {
+  return (
+    <View style={styles.questionSkeleton}>
+      <SkeletonBox width={60} height={24} style={{ alignSelf: 'center', marginBottom: 16 }} />
+      <SkeletonBox width="90%" height={60} borderRadius={12} style={{ alignSelf: 'center', marginBottom: 24 }} />
+      
+      {/* الخيارات */}
+      <View style={styles.optionsSkeleton}>
+        <SkeletonBox width="100%" height={50} borderRadius={12} style={{ marginBottom: 12 }} />
+        <SkeletonBox width="100%" height={50} borderRadius={12} style={{ marginBottom: 12 }} />
+        <SkeletonBox width="100%" height={50} borderRadius={12} style={{ marginBottom: 12 }} />
+        <SkeletonBox width="100%" height={50} borderRadius={12} style={{ marginBottom: 12 }} />
+      </View>
+      
+      {/* زر التأكيد */}
+      <SkeletonBox width="100%" height={50} borderRadius={25} style={{ marginTop: 16 }} />
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
   skeleton: {
     backgroundColor: '#e0e0e0',
@@ -192,5 +215,11 @@ const styles = StyleSheet.create({
   },
   formField: {
     marginBottom: 20,
+  },
+  questionSkeleton: {
+    padding: 20,
+  },
+  optionsSkeleton: {
+    marginTop: 8,
   },
 });

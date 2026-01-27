@@ -9,8 +9,18 @@ import Svg, { Circle, Path, Text as SvgText, Rect } from 'react-native-svg';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as ScreenCapture from 'expo-screen-capture';
 import HtmlRenderer from '../components/HtmlRenderer';
+import { QuestionSkeleton } from '../components/SkeletonLoader';
 
 const { width } = Dimensions.get('window');
+
+// دالة لإنشاء UUID صالح
+const generateUUID = () => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
 
 // أيقونة السهم للخلف
 const BackIcon = () => (
@@ -118,12 +128,14 @@ export default function LessonDetailScreen({ navigation, route }) {
   const [lessonData, setLessonData] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [currentQuestion, setCurrentQuestion] = useState(null);
+  const [questionLoading, setQuestionLoading] = useState(false); // حالة تحميل السؤال
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [videoStatus, setVideoStatus] = useState({});
   const [answeredQuestions, setAnsweredQuestions] = useState(new Set());
   const [questionResults, setQuestionResults] = useState([]);
   const [showResults, setShowResults] = useState(false);
+  const [isLessonCompleted, setIsLessonCompleted] = useState(false); // هل أكمل الدرس سابقاً
   const [showControls, setShowControls] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isLandscape, setIsLandscape] = useState(false);
@@ -207,17 +219,36 @@ export default function LessonDetailScreen({ navigation, route }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // جلب موضع الفيديو المحفوظ
+      // جلب موضع الفيديو المحفوظ وحالة الإكمال
       const { data: progress } = await supabase
         .from('student_progress')
-        .select('video_position')
+        .select('video_position, completed')
         .eq('user_id', user.id)
         .eq('lesson_id', lesson.id)
         .single();
 
       console.log('Fetched saved position:', progress);
 
-      if (progress && progress.video_position > 0) {
+      // تحديد إذا كان الدرس مكتمل سابقاً
+      if (progress?.completed) {
+        console.log('📚 الدرس مكتمل سابقاً - سيتم عرض أسئلة جديدة للمراجعة');
+        setIsLessonCompleted(true);
+        // إذا كان الدرس مكتمل، نبدأ من البداية للمراجعة
+        setSavedPosition(0);
+        console.log('🔄 إعادة تعيين موضع الفيديو إلى 0 للمراجعة');
+        
+        // إعادة تعيين completed إلى false لبدء جلسة مراجعة جديدة
+        await supabase
+          .from('student_progress')
+          .update({
+            completed: false,
+            video_position: 0,
+            last_watched_at: new Date().toISOString()
+          })
+          .eq('user_id', user.id)
+          .eq('lesson_id', lesson.id);
+        console.log('🔄 تم بدء جلسة مراجعة جديدة');
+      } else if (progress && progress.video_position > 0) {
         console.log('Setting saved position to:', progress.video_position);
         setSavedPosition(progress.video_position);
       } else {
@@ -225,8 +256,8 @@ export default function LessonDetailScreen({ navigation, route }) {
       }
 
       // تحديث آخر وقت مشاهدة (بدون تغيير video_position)
-      if (progress) {
-        // إذا كان السجل موجود، نحدث فقط last_watched_at
+      if (progress && !progress.completed) {
+        // إذا كان السجل موجود ولم يكن مكتمل، نحدث فقط last_watched_at
         await supabase
           .from('student_progress')
           .update({
@@ -234,7 +265,7 @@ export default function LessonDetailScreen({ navigation, route }) {
           })
           .eq('user_id', user.id)
           .eq('lesson_id', lesson.id);
-      } else {
+      } else if (!progress) {
         // إذا لم يكن موجود، ننشئ سجل جديد
         await supabase
           .from('student_progress')
@@ -397,6 +428,7 @@ export default function LessonDetailScreen({ navigation, route }) {
   const fetchLessonData = async () => {
     try {
       const { fetchWithCache } = require('../lib/cacheService');
+      const { data: { user } } = await supabase.auth.getUser();
       
       // جلب بيانات الدرس مع Cache
       const lessonInfo = await fetchWithCache(
@@ -438,12 +470,56 @@ export default function LessonDetailScreen({ navigation, route }) {
       );
 
       if (!questionsData) return;
+
+      // جلب حالة إكمال الدرس والإجابات المحفوظة
+      let savedAnswers = [];
+      let lessonCompleted = false;
       
-      // لكل سؤال، اختيار نسخة عشوائية
+      if (user) {
+        // جلب حالة الإكمال
+        const { data: progress } = await supabase
+          .from('student_progress')
+          .select('completed')
+          .eq('user_id', user.id)
+          .eq('lesson_id', lesson.id)
+          .single();
+        
+        lessonCompleted = progress?.completed || false;
+        
+        // جلب الإجابات المحفوظة دائماً
+        const { data: answers, error: answersError } = await supabase
+          .from('video_question_answers')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('lesson_id', lesson.id);
+        
+        if (answersError) {
+          console.error('❌ خطأ في جلب الإجابات:', answersError);
+        }
+        
+        savedAnswers = answers || [];
+        console.log('📝 الإجابات المحفوظة:', savedAnswers.length);
+        if (savedAnswers.length > 0) {
+          console.log('📝 تفاصيل الإجابات:', JSON.stringify(savedAnswers));
+        }
+        
+        // إذا كان الدرس مكتمل ولا توجد إجابات محفوظة، هذه بداية مراجعة جديدة
+        if (lessonCompleted && savedAnswers.length === 0) {
+          console.log('📚 الدرس مكتمل - بداية مراجعة جديدة');
+        } else if (lessonCompleted && savedAnswers.length > 0) {
+          console.log('📚 استكمال جلسة مراجعة سابقة');
+          // لا نحذف الإجابات - نستكمل المراجعة
+          lessonCompleted = false; // نعامله كدرس غير مكتمل لاستعادة الإجابات
+        }
+      }
+      
+      // لكل سؤال، اختيار نسخة (محفوظة أو عشوائية)
       const questionsWithVariants = (questionsData || []).map(q => {
         const allVariants = [
           {
             id: q.id,
+            parent_question_id: q.id,
+            is_original: true,
             question_text: q.question_text,
             question_image_url: q.question_image_url,
             option_a: q.option_a,
@@ -455,20 +531,73 @@ export default function LessonDetailScreen({ navigation, route }) {
           },
           ...(q.question_variants || []).map(v => ({
             id: v.id,
-            question_text: v.question_text,
+            parent_question_id: q.id,
+            is_original: false,
+            question_text: v.question_text || v.variant_text,
             question_image_url: v.question_image_url,
-            option_a: v.options[0],
-            option_b: v.options[1],
-            option_c: v.options[2],
-            option_d: v.options[3],
-            correct_answer: ['A', 'B', 'C', 'D'][v.correct_answer],
+            option_a: v.options ? v.options[0] : v.option_a,
+            option_b: v.options ? v.options[1] : v.option_b,
+            option_c: v.options ? v.options[2] : v.option_c,
+            option_d: v.options ? v.options[3] : v.option_d,
+            correct_answer: v.options ? ['A', 'B', 'C', 'D'][v.correct_answer] : v.correct_answer,
             show_at_time: q.show_at_time
           }))
         ];
         
+        // البحث عن إجابة محفوظة لهذا السؤال
+        const savedAnswer = savedAnswers.find(a => a.question_id === q.id);
+        
+        if (savedAnswer && !lessonCompleted) {
+          // استخدام نفس الـ variant المحفوظ
+          const savedVariant = allVariants.find(v => v.id === savedAnswer.variant_id);
+          if (savedVariant) {
+            console.log(`✅ استخدام variant محفوظ للسؤال ${q.id}`);
+            return savedVariant;
+          }
+        }
+        
         // اختيار نسخة عشوائية
         return allVariants[Math.floor(Math.random() * allVariants.length)];
       });
+      
+      // استعادة الإجابات المحفوظة
+      if (savedAnswers.length > 0 && !lessonCompleted) {
+        const answeredIds = new Set();
+        const results = [];
+        
+        for (const answer of savedAnswers) {
+          const question = questionsWithVariants.find(q => q.parent_question_id === answer.question_id);
+          if (question) {
+            answeredIds.add(question.id);
+            results.push({
+              question: question,
+              userAnswer: answer.selected_answer,
+              isCorrect: answer.is_correct
+            });
+          }
+        }
+        
+        setAnsweredQuestions(answeredIds);
+        setQuestionResults(results);
+        console.log(`📊 تم استعادة ${results.length} إجابة`);
+        
+        // إذا أجاب على جميع الأسئلة، اعرض صفحة النتائج
+        if (results.length === questionsWithVariants.length && questionsWithVariants.length > 0) {
+          setShowResults(true);
+        } else {
+          // حساب موضع البداية بناءً على أول سؤال غير مجاب
+          const unansweredQuestions = questionsWithVariants.filter(q => !answeredIds.has(q.id));
+          if (unansweredQuestions.length > 0) {
+            // ترتيب الأسئلة غير المجابة حسب وقت الظهور
+            unansweredQuestions.sort((a, b) => a.show_at_time - b.show_at_time);
+            const firstUnansweredTime = unansweredQuestions[0].show_at_time;
+            // البدء قبل السؤال بثانيتين
+            const startPosition = Math.max(0, firstUnansweredTime - 2);
+            console.log(`🎯 أول سؤال غير مجاب عند الثانية ${firstUnansweredTime}، سيبدأ الفيديو من ${startPosition}`);
+            setSavedPosition(startPosition);
+          }
+        }
+      }
       
       setQuestions(questionsWithVariants);
     } catch (error) {
@@ -520,18 +649,36 @@ export default function LessonDetailScreen({ navigation, route }) {
       if (status.positionMillis) {
         const currentSeconds = Math.floor(status.positionMillis / 1000);
         
+        // Debug: تتبع الأسئلة
+        if (questions.length > 0 && currentSeconds === 6) {
+          console.log('🔍 Debug - currentSeconds:', currentSeconds);
+          console.log('🔍 Debug - questions:', questions.map(q => ({ id: q.id, show_at_time: q.show_at_time })));
+          console.log('🔍 Debug - currentQuestion:', currentQuestion ? 'exists' : 'null');
+          console.log('🔍 Debug - questionLoading:', questionLoading);
+          console.log('🔍 Debug - answeredQuestions:', [...answeredQuestions]);
+        }
+        
         const questionToShow = questions.find(
           q => q.show_at_time === currentSeconds && 
                !currentQuestion && 
+               !questionLoading &&
                !answeredQuestions.has(q.id)
         );
 
         if (questionToShow) {
+          console.log('✅ Found question to show:', questionToShow.id);
           videoRef.current?.pauseAsync();
-          setCurrentQuestion(questionToShow);
+          // عرض skeleton أولاً ثم السؤال
+          setQuestionLoading(true);
           setSelectedAnswer(null);
           // قفل الشاشة على الوضع العمودي عند ظهور السؤال
           ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+          
+          // تأخير قصير لعرض skeleton ثم إظهار السؤال
+          setTimeout(() => {
+            setCurrentQuestion(questionToShow);
+            setQuestionLoading(false);
+          }, 800);
         }
       }
     }
@@ -574,6 +721,42 @@ export default function LessonDetailScreen({ navigation, route }) {
 
     const isCorrect = selectedAnswer === currentQuestion.correct_answer;
     
+    // حفظ الإجابة في قاعدة البيانات
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // حذف الإجابة القديمة إن وجدت
+        await supabase
+          .from('video_question_answers')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('lesson_id', lesson.id)
+          .eq('question_id', currentQuestion.parent_question_id || currentQuestion.id);
+        
+        // إدراج الإجابة الجديدة
+        const insertResult = await supabase
+          .from('video_question_answers')
+          .insert({
+            id: generateUUID(),
+            user_id: user.id,
+            lesson_id: lesson.id,
+            question_id: currentQuestion.parent_question_id || currentQuestion.id,
+            variant_id: currentQuestion.is_original ? currentQuestion.id : currentQuestion.id,
+            selected_answer: selectedAnswer,
+            is_correct: isCorrect,
+            answered_at: new Date().toISOString()
+          });
+        
+        if (insertResult.error) {
+          console.error('❌ خطأ في حفظ الإجابة:', insertResult.error);
+        } else {
+          console.log('💾 تم حفظ الإجابة في قاعدة البيانات بنجاح');
+        }
+      }
+    } catch (error) {
+      console.error('خطأ في حفظ الإجابة:', error);
+    }
+    
     // حفظ نتيجة السؤال
     setQuestionResults(prev => [...prev, {
       question: currentQuestion,
@@ -585,7 +768,32 @@ export default function LessonDetailScreen({ navigation, route }) {
     setAnsweredQuestions(prev => new Set([...prev, currentQuestion.id]));
     
     // إذا أجاب على جميع الأسئلة
+    console.log('🔢 Debug - answeredQuestions.size:', answeredQuestions.size);
+    console.log('🔢 Debug - questions.length:', questions.length);
+    console.log('🔢 Debug - Check:', answeredQuestions.size + 1, '===', questions.length);
+    
     if (answeredQuestions.size + 1 === questions.length) {
+      // تعيين الدرس كمكتمل وإعادة تعيين موضع الفيديو
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase
+            .from('student_progress')
+            .upsert({
+              user_id: user.id,
+              lesson_id: lesson.id,
+              video_position: 0, // إعادة تعيين موضع الفيديو
+              completed: true,
+              last_watched_at: new Date().toISOString()
+            }, {
+              onConflict: 'user_id,lesson_id'
+            });
+          console.log('✅ تم تعيين الدرس كمكتمل');
+        }
+      } catch (error) {
+        console.error('خطأ في تعيين الدرس كمكتمل:', error);
+      }
+      
       setTimeout(() => {
         setShowResults(true);
       }, 500);
@@ -602,6 +810,27 @@ export default function LessonDetailScreen({ navigation, route }) {
   };
 
   const goToQuestionTime = async (questionId, timeInSeconds) => {
+    // البحث عن السؤال للحصول على parent_question_id
+    const questionToRemove = questionResults.find(r => r.question.id === questionId);
+    const parentQuestionId = questionToRemove?.question?.parent_question_id || questionId;
+    
+    // حذف الإجابة من قاعدة البيانات
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('video_question_answers')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('lesson_id', lesson.id)
+          .eq('question_id', parentQuestionId);
+        
+        console.log('🗑️ تم حذف الإجابة من قاعدة البيانات');
+      }
+    } catch (error) {
+      console.error('خطأ في حذف الإجابة:', error);
+    }
+    
     // إزالة السؤال من القائمة المجاب عليها ليظهر مرة أخرى
     setAnsweredQuestions(prev => {
       const newSet = new Set(prev);
@@ -719,7 +948,15 @@ export default function LessonDetailScreen({ navigation, route }) {
               <Text style={styles.questionsTitle}>إجابات صحيحة:</Text>
               {questionResults.filter(r => r.isCorrect).map((result, index) => (
                 <View key={index} style={styles.questionResultCard}>
-                  <HtmlRenderer html={result.question.question_text} style={styles.questionResultText} />
+                  {result.question.question_image_url ? (
+                    <Image 
+                      source={{ uri: result.question.question_image_url }} 
+                      style={styles.questionResultImage}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <HtmlRenderer html={result.question.question_text} style={styles.questionResultText} />
+                  )}
                   <View style={styles.answerRow}>
                     <View style={styles.answerIcon}>
                       <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
@@ -749,7 +986,15 @@ export default function LessonDetailScreen({ navigation, route }) {
                         <Path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke="#2196F3" strokeWidth={2} fill="#e3f2fd" />
                       </Svg>
                     </TouchableOpacity>
-                    <HtmlRenderer html={result.question.question_text} style={styles.questionResultText} />
+                    {result.question.question_image_url ? (
+                      <Image 
+                        source={{ uri: result.question.question_image_url }} 
+                        style={styles.questionResultImage}
+                        resizeMode="contain"
+                      />
+                    ) : (
+                      <HtmlRenderer html={result.question.question_text} style={styles.questionResultText} />
+                    )}
                   </View>
                   <View style={styles.answerRow}>
                     <View style={styles.answerIcon}>
@@ -920,7 +1165,9 @@ export default function LessonDetailScreen({ navigation, route }) {
             </View>
           )}
           <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
-        {currentQuestion ? (
+        {questionLoading ? (
+          <QuestionSkeleton />
+        ) : currentQuestion ? (
           <View style={styles.questionContainer}>
             <Text style={styles.questionTitle}>سؤال</Text>
             
@@ -938,38 +1185,44 @@ export default function LessonDetailScreen({ navigation, route }) {
             )}
             
             <View style={styles.optionsContainer}>
-              {['A', 'B', 'C', 'D'].map((option) => (
-                <TouchableOpacity
-                  key={option}
-                  style={[
-                    styles.optionButton,
-                    selectedAnswer === option && styles.optionButtonSelected
-                  ]}
-                  onPress={() => setSelectedAnswer(option)}
-                >
-                  <View style={[
-                    styles.optionCircle,
-                    selectedAnswer === option && styles.optionCircleSelected
-                  ]} />
-                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                    <Text style={[
-                      styles.optionText,
-                      selectedAnswer === option && styles.optionTextSelected
-                    ]}>
-                      {option}.{' '}
-                    </Text>
-                    <View style={{ flex: 1 }}>
-                      <HtmlRenderer 
-                        html={currentQuestion[`option_${option.toLowerCase()}`]}
-                        style={[
-                          styles.optionText,
-                          selectedAnswer === option && styles.optionTextSelected
-                        ]}
-                      />
+              {['A', 'B', 'C', 'D'].map((option, index) => {
+                const arabicLetters = ['أ', 'ب', 'ج', 'د'];
+                return (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.optionButton,
+                      selectedAnswer === option && styles.optionButtonSelected,
+                      { flexDirection: 'row-reverse', justifyContent: 'flex-end' }
+                    ]}
+                    onPress={() => setSelectedAnswer(option)}
+                  >
+                    <View style={{ flexDirection: 'row-reverse', alignItems: 'center', flex: 1 }}>
+                      <Text style={[
+                        styles.optionText,
+                        selectedAnswer === option && styles.optionTextSelected,
+                        { fontWeight: 'bold', marginLeft: 10, fontSize: 18 }
+                      ]}>
+                        {arabicLetters[index]}.
+                      </Text>
+                      <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                        <HtmlRenderer 
+                          html={currentQuestion[`option_${option.toLowerCase()}`]}
+                          style={[
+                            styles.optionText,
+                            selectedAnswer === option && styles.optionTextSelected
+                          ]}
+                        />
+                      </View>
                     </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
+                    <View style={[
+                      styles.optionCircle,
+                      selectedAnswer === option && styles.optionCircleSelected,
+                      { marginRight: 0, marginLeft: 10 }
+                    ]} />
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
             <TouchableOpacity
@@ -989,6 +1242,7 @@ export default function LessonDetailScreen({ navigation, route }) {
           </ScrollView>
         </View>
       )}
+
     </ContainerComponent>
   );
 }
@@ -1611,12 +1865,19 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     marginBottom: 20,
   },
+  questionResultImage: {
+    width: '100%',
+    height: undefined,
+    aspectRatio: 1.5,
+    marginBottom: 15,
+    borderRadius: 8,
+  },
   questionImage: {
     width: '100%',
-    height: 200,
+    height: undefined,
+    aspectRatio: 1.5,
     marginBottom: 20,
     borderRadius: 12,
-    backgroundColor: '#f5f5f5',
   },
   answerRow: {
     flexDirection: 'row',

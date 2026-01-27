@@ -73,11 +73,17 @@ export default function LessonsScreen({ navigation, route }) {
   const [userSubscription, setUserSubscription] = useState(null);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [unlockAllLessons, setUnlockAllLessons] = useState(false);
+  const [showCompletedModal, setShowCompletedModal] = useState(false);
+  const [completedLessonData, setCompletedLessonData] = useState(null);
 
   useFocusEffect(
     React.useCallback(() => {
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-    }, [])
+      // تحديث البيانات عند العودة للصفحة
+      if (subjectId) {
+        fetchStudentProgress();
+      }
+    }, [subjectId])
   );
 
   useEffect(() => {
@@ -100,15 +106,28 @@ export default function LessonsScreen({ navigation, route }) {
       // جلب مباشر بدون cache - للحصول على حالة الاشتراك اللحظية
       const { data, error } = await supabase
         .from('users')
-        .select('subscription_tier, subscription_end, unlock_all_lessons')
+        .select('subscription_tier, subscription_end, subscription_status, unlock_all_lessons')
         .eq('id', user.id)
         .single();
       
       if (error) throw error;
       
-      setUserSubscription(data);
+      // التحقق من انتهاء الاشتراك
+      let subscriptionData = { ...data };
+      if (data?.subscription_end) {
+        const endDate = new Date(data.subscription_end);
+        const today = new Date();
+        if (endDate < today) {
+          // الاشتراك منتهي - نعامله كـ free
+          console.log('⚠️ الاشتراك منتهي في:', data.subscription_end);
+          subscriptionData.subscription_tier = 'free';
+          subscriptionData.isExpired = true;
+        }
+      }
+      
+      setUserSubscription(subscriptionData);
       setUnlockAllLessons(data?.unlock_all_lessons || false);
-      return data;
+      return subscriptionData;
     } catch (error) {
       console.error('Error fetching subscription:', error);
       return null;
@@ -193,11 +212,17 @@ export default function LessonsScreen({ navigation, route }) {
     // للطلاب المشتركين: الدرس الأول مفتوح دائماً
     if (lessonIndex === 0) return true;
     
-    // باقي الدروس تحتاج إكمال الدرس السابق
-    const previousLesson = lessons[lessonIndex - 1];
-    const progress = studentProgress.find(p => p.lesson_id === previousLesson?.id);
+    // إذا كان الطالب دخل هذا الدرس من قبل (يوجد سجل تقدم له)، يعني الدرس مفتوح
+    const currentLessonProgress = studentProgress.find(p => p.lesson_id === lesson?.id);
+    if (currentLessonProgress) {
+      return true;
+    }
     
-    return progress?.passed === true;
+    // باقي الدروس تحتاج إكمال الدرس السابق (passed = true)
+    const previousLesson = lessons[lessonIndex - 1];
+    const previousProgress = studentProgress.find(p => p.lesson_id === previousLesson?.id);
+    
+    return previousProgress?.passed === true;
   };
 
   const renderLesson = ({ item, index }) => {
@@ -219,8 +244,38 @@ export default function LessonsScreen({ navigation, route }) {
     return (
       <TouchableOpacity 
         style={[styles.lessonCard, !unlocked && styles.lessonCardLocked]}
-        onPress={() => {
+        onPress={async () => {
           if (unlocked) {
+            // التحقق من اكتمال الدرس (passed يعني نجح سابقاً)
+            if (progress?.passed) {
+              // جلب نتيجة الدرس
+              try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                  const { data: answers } = await supabase
+                    .from('video_question_answers')
+                    .select('is_correct')
+                    .eq('user_id', user.id)
+                    .eq('lesson_id', item.id);
+                  
+                  const total = answers?.length || 0;
+                  const correct = answers?.filter(a => a.is_correct).length || 0;
+                  
+                  setCompletedLessonData({
+                    lesson: item,
+                    correct,
+                    total,
+                    videoPosition
+                  });
+                  setShowCompletedModal(true);
+                  return;
+                }
+              } catch (error) {
+                console.error('خطأ في جلب نتيجة الدرس:', error);
+              }
+            }
+            
+            // الدرس غير مكتمل - الدخول مباشرة
             navigation.navigate('LessonDetail', { 
               lesson: item,
               subjectId: subjectId,
@@ -335,9 +390,93 @@ export default function LessonsScreen({ navigation, route }) {
         onClose={() => setShowSubscriptionModal(false)}
         onSubscribe={() => {
           setShowSubscriptionModal(false);
-          navigation.navigate('Subscriptions');
         }}
+        hideSubscribeButton={true}
       />
+
+      {/* Modal الدرس المكتمل */}
+      {showCompletedModal && completedLessonData && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.completedModal}>
+            <View style={styles.completedModalIcon}>
+              <Svg width={60} height={60} viewBox="0 0 24 24" fill="none">
+                <Circle cx={12} cy={12} r={10} fill="#4CAF50" />
+                <Path d="M9 12l2 2 4-4" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+              </Svg>
+            </View>
+            
+            <Text style={styles.completedModalTitle}>الدرس مكتمل ✅</Text>
+            <Text style={styles.completedModalSubtitle}>{completedLessonData.lesson?.title}</Text>
+            
+            <View style={styles.completedModalScore}>
+              <Text style={styles.completedModalScoreText}>
+                نتيجتك: {completedLessonData.total > 0 ? Math.round((completedLessonData.correct / completedLessonData.total) * 100) : 100}%
+              </Text>
+              <Text style={styles.completedModalScoreDetails}>
+                ({completedLessonData.correct}/{completedLessonData.total})
+              </Text>
+            </View>
+            
+            <TouchableOpacity
+              style={styles.completedModalButton}
+              onPress={async () => {
+                // حذف الإجابات القديمة وبدء مراجعة جديدة
+                try {
+                  const { data: { user } } = await supabase.auth.getUser();
+                  if (user) {
+                    // حذف الإجابات القديمة
+                    await supabase
+                      .from('video_question_answers')
+                      .delete()
+                      .eq('user_id', user.id)
+                      .eq('lesson_id', completedLessonData.lesson.id);
+                    
+                    // إعادة تعيين حالة الدرس للمراجعة (بدون تغيير passed للحفاظ على فتح الدروس التالية)
+                    await supabase
+                      .from('student_progress')
+                      .update({
+                        completed: false,
+                        video_position: 0
+                      })
+                      .eq('user_id', user.id)
+                      .eq('lesson_id', completedLessonData.lesson.id);
+                  }
+                } catch (error) {
+                  console.error('خطأ في إعادة تعيين الدرس:', error);
+                }
+                
+                setShowCompletedModal(false);
+                
+                // تحديث studentProgress محلياً (بدون تغيير passed)
+                setStudentProgress(prev => prev.map(p => 
+                  p.lesson_id === completedLessonData.lesson.id 
+                    ? { ...p, completed: false, video_position: 0 }
+                    : p
+                ));
+                
+                // الانتقال للدرس
+                navigation.navigate('LessonDetail', { 
+                  lesson: completedLessonData.lesson,
+                  subjectId: subjectId,
+                  passingPercentage: passingPercentage,
+                  savedPosition: 0
+                });
+              }}
+            >
+              <Text style={styles.completedModalButtonText}>مراجعة الدرس 🔄</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.completedModalCloseButton}
+              onPress={() => {
+                setShowCompletedModal(false);
+              }}
+            >
+              <Text style={styles.completedModalCloseButtonText}>إغلاق ✕</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* شريط التنقل السفلي */}
       <View style={styles.bottomNav}>
@@ -579,5 +718,90 @@ const styles = StyleSheet.create({
     height: 14,
     backgroundColor: '#e0e0e0',
     borderRadius: 4,
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  completedModal: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 30,
+    width: '85%',
+    maxWidth: 350,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  completedModalIcon: {
+    marginBottom: 15,
+  },
+  completedModalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  completedModalSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  completedModalScore: {
+    backgroundColor: '#f0f9ff',
+    paddingVertical: 15,
+    paddingHorizontal: 25,
+    borderRadius: 15,
+    marginBottom: 25,
+    alignItems: 'center',
+  },
+  completedModalScoreText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2196F3',
+  },
+  completedModalScoreDetails: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 5,
+  },
+  completedModalButton: {
+    backgroundColor: '#2196F3',
+    paddingVertical: 15,
+    paddingHorizontal: 40,
+    borderRadius: 12,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  completedModalButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  completedModalCloseButton: {
+    backgroundColor: '#f5f5f5',
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 12,
+    width: '100%',
+    alignItems: 'center',
+  },
+  completedModalCloseButtonText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

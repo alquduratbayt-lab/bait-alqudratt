@@ -141,8 +141,9 @@ const menuItems = [
   { id: '1', title: 'التفاصيل الشخصية' },
   { id: '2', title: 'النقاط' },
   { id: '3', title: 'لحظات هدوء' },
-  { id: '4', title: 'الاشتراكات', screen: 'Subscriptions' },
+  // { id: '4', title: 'الاشتراكات', screen: 'Subscriptions' }, // تم إخفاء الاشتراكات - الاشتراك من الموقع فقط
   { id: '5', title: 'الدعم الفني' },
+  { id: '6', title: 'سياسة الخصوصية والاستخدام' },
 ];
 
 export default function ProfileScreen({ navigation }) {
@@ -472,8 +473,9 @@ export default function ProfileScreen({ navigation }) {
                 if (item.id === '1') navigation.navigate('EditProfile');
                 if (item.id === '2') navigation.navigate('Points');
                 if (item.id === '3') navigation.navigate('CalmMoments');
-                if (item.id === '4') navigation.navigate('Subscriptions');
+                // if (item.id === '4') navigation.navigate('Subscriptions'); // تم إخفاء الاشتراكات
                 if (item.id === '5') navigation.navigate('Support');
+                if (item.id === '6') navigation.navigate('PrivacyPolicy');
               }}
             >
               <ChevronIcon />

@@ -148,12 +148,11 @@ export default function TrainingScreen({ navigation }) {
         visible={alertVisible}
         type="warning"
         title="اشترك للوصول"
-        message="التدريب المباشر متاح فقط للمشتركين في الباقة المميزة. اشترك الآن للانضمام إلى الحصص المباشرة مع أفضل المدرسين!"
+        message="التدريب المباشر متاح فقط للمشتركين في الباقة المميزة. للاشتراك، قم بزيارة موقعنا: bait-alqudratt.com"
         buttons={[
-          { text: 'إلغاء', style: 'cancel', onPress: () => navigation.goBack() },
-          { text: 'اشترك الآن', onPress: () => {
+          { text: 'حسناً', onPress: () => {
             setAlertVisible(false);
-            navigation.navigate('Subscriptions');
+            navigation.goBack();
           }}
         ]}
         onClose={() => {

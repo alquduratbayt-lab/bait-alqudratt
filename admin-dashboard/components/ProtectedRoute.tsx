@@ -15,7 +15,10 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     '/privacy',
     '/terms',
     '/refund',
-    '/admin-login'
+    '/admin-login',
+    '/login',
+    '/subscribe',
+    '/payment-success'
   ];
 
   useEffect(() => {

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 import DashboardLayout from '@/components/DashboardLayout';
 
 interface SubscriptionPlan {
@@ -35,13 +34,11 @@ export default function SubscriptionsPage() {
 
   const fetchPlans = async () => {
     try {
-      const { data, error } = await supabase
-        .from('subscription_plans')
-        .select('*')
-        .order('price');
+      const response = await fetch('/api/subscription-plans');
+      const result = await response.json();
 
-      if (error) throw error;
-      setPlans(data || []);
+      if (!response.ok) throw new Error(result.error);
+      setPlans(result.data || []);
     } catch (error) {
       console.error('Error fetching plans:', error);
       alert('حدث خطأ في جلب الباقات');
@@ -63,27 +60,33 @@ export default function SubscriptionsPage() {
         is_active: formData.is_active,
       };
 
+      let response;
       if (editingPlan) {
-        const { error } = await supabase
-          .from('subscription_plans')
-          .update(planData)
-          .eq('id', editingPlan.id);
-
-        if (error) throw error;
-        alert('تم تحديث الباقة بنجاح');
+        response = await fetch('/api/subscription-plans', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editingPlan.id, ...planData }),
+        });
       } else {
-        const { error } = await supabase
-          .from('subscription_plans')
-          .insert([planData]);
-
-        if (error) throw error;
-        alert('تم إضافة الباقة بنجاح');
+        response = await fetch('/api/subscription-plans', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(planData),
+        });
       }
 
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+
+      // إعادة جلب البيانات أولاً
+      await fetchPlans();
+      
+      // ثم إغلاق النموذج وإعادة تعيين الحالة
       setShowForm(false);
       setEditingPlan(null);
       resetForm();
-      fetchPlans();
+      
+      alert(editingPlan ? 'تم تحديث الباقة بنجاح' : 'تم إضافة الباقة بنجاح');
     } catch (error) {
       console.error('Error saving plan:', error);
       alert('حدث خطأ في حفظ الباقة');
@@ -107,12 +110,13 @@ export default function SubscriptionsPage() {
     if (!confirm('هل أنت متأكد من حذف هذه الباقة؟')) return;
 
     try {
-      const { error } = await supabase
-        .from('subscription_plans')
-        .delete()
-        .eq('id', id);
+      const response = await fetch(`/api/subscription-plans?id=${id}`, {
+        method: 'DELETE',
+      });
 
-      if (error) throw error;
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+
       alert('تم حذف الباقة بنجاح');
       fetchPlans();
     } catch (error) {

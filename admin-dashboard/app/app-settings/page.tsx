@@ -77,6 +77,7 @@ export default function AppSettingsPage() {
       'content': '📱 إعدادات المحتوى',
       'notifications': '🔔 إعدادات الإشعارات',
       'social': '🌐 إعدادات السوشيال ميديا',
+      'legal': '📜 سياسة الخصوصية والاستخدام',
     };
     return labels[category] || category;
   };
@@ -131,6 +132,18 @@ export default function AppSettingsPage() {
               className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
             />
           </div>
+        );
+      
+      case 'textarea':
+        return (
+          <textarea
+            value={setting.setting_value}
+            onChange={(e) => updateSettingValue(setting.id, e.target.value)}
+            rows={6}
+            className="w-full max-w-2xl px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 text-right"
+            dir="rtl"
+            placeholder="أدخل النص هنا..."
+          />
         );
       
       default:

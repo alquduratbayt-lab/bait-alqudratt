@@ -18,7 +18,7 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    const { planId, userId, callbackUrl } = await req.json()
+    const { planId, userId, callbackUrl, source } = await req.json()
 
     if (!planId || !userId) {
       return new Response(
@@ -80,8 +80,11 @@ serve(async (req) => {
         user_id: userId,
         plan_id: planId,
         plan_name: plan.name,
-        duration_days: plan.duration_days
-      }
+        duration_days: plan.duration_days,
+        source: source || 'app'
+      },
+      success_url: callbackUrl ? callbackUrl : undefined,
+      back_url: callbackUrl ? `${callbackUrl}?status=failed` : undefined
     }
 
     const moyasarResponse = await fetch('https://api.moyasar.com/v1/invoices', {

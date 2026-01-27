@@ -213,6 +213,19 @@ export default function CurriculumScreen({ navigation }) {
 
       // جلب آخر درس تمت مشاهدته أو الدرس التالي
       if (user) {
+        // التحقق من حالة الاشتراك أولاً
+        const { data: userData } = await supabase
+          .from('users')
+          .select('subscription_tier, subscription_end')
+          .eq('id', user.id)
+          .single();
+        
+        const isSubscribed = userData?.subscription_tier === 'premium' && 
+          userData?.subscription_end && 
+          new Date(userData.subscription_end) > new Date();
+        
+        console.log('🔐 حالة الاشتراك:', isSubscribed ? 'مشترك' : 'غير مشترك');
+
         const { data: lastWatched, error: lastWatchedError } = await supabase
           .from('student_progress')
           .select(`
@@ -225,6 +238,7 @@ export default function CurriculumScreen({ navigation }) {
               title,
               subject_id,
               order_index,
+              is_free,
               subjects (
                 id,
                 name,
@@ -245,6 +259,9 @@ export default function CurriculumScreen({ navigation }) {
           let lessonToShow = lastWatched.lessons;
           let videoPosition = lastWatched.video_position || 0;
           
+          // التحقق من إمكانية الوصول للدرس الحالي
+          const canAccessCurrentLesson = isSubscribed || lastWatched.lessons.is_free;
+          
           // إذا كان الدرس الأخير مكتمل، ابحث عن الدرس التالي
           if (lastWatched.passed) {
             const { data: nextLesson } = await supabase
@@ -254,6 +271,7 @@ export default function CurriculumScreen({ navigation }) {
                 title,
                 subject_id,
                 order_index,
+                is_free,
                 subjects (
                   id,
                   name,
@@ -267,9 +285,27 @@ export default function CurriculumScreen({ navigation }) {
               .single();
 
             if (nextLesson) {
-              lessonToShow = nextLesson;
-              videoPosition = 0; // الدرس التالي يبدأ من البداية
+              // التحقق من إمكانية الوصول للدرس التالي
+              const canAccessNextLesson = isSubscribed || nextLesson.is_free;
+              
+              if (canAccessNextLesson) {
+                lessonToShow = nextLesson;
+                videoPosition = 0; // الدرس التالي يبدأ من البداية
+              } else {
+                // إذا لم يكن مشترك والدرس التالي مدفوع، نعرض الدرس الحالي للمراجعة
+                console.log('⚠️ الدرس التالي مدفوع - عرض الدرس الحالي للمراجعة');
+                // نبقى على الدرس الحالي (lessonToShow = lastWatched.lessons)
+                videoPosition = 0; // يبدأ من البداية للمراجعة
+              }
+            } else {
+              // لا يوجد درس تالي - نعرض الدرس الحالي للمراجعة
+              videoPosition = 0;
             }
+          } else if (!canAccessCurrentLesson) {
+            // إذا كان الدرس الحالي مدفوع والمستخدم غير مشترك
+            console.log('⚠️ الدرس الحالي مدفوع والمستخدم غير مشترك');
+            setLastWatchedLesson(null);
+            return;
           }
 
           setLastWatchedLesson({

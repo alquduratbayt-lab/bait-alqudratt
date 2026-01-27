@@ -10,11 +10,23 @@ export const getUserSubscription = async () => {
 
     const { data, error } = await supabase
       .from('users')
-      .select('subscription_tier, subscription_status')
+      .select('subscription_tier, subscription_status, subscription_end')
       .eq('id', user.id)
       .single();
 
     if (error) throw error;
+    
+    // التحقق من انتهاء الاشتراك
+    if (data?.subscription_end) {
+      const endDate = new Date(data.subscription_end);
+      const today = new Date();
+      if (endDate < today) {
+        // الاشتراك منتهي - نعامله كـ free
+        console.log('⚠️ الاشتراك منتهي في:', data.subscription_end);
+        return { ...data, subscription_tier: 'free', isExpired: true };
+      }
+    }
+    
     return data;
   } catch (error) {
     console.error('Error fetching user subscription:', error);
