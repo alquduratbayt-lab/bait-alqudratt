@@ -34,7 +34,14 @@
     },
     "plugins": [
       "expo-notifications",
-      "expo-video"
+      "expo-video",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "بيت القدرات يحتاج الوصول لمكتبة الصور لتحديث صورة ملفك الشخصي. Bait Al-Qudrat needs access to your photo library to update your profile picture.",
+          "cameraPermission": "بيت القدرات يحتاج الوصول للكاميرا لالتقاط صورة ملفك الشخصي. Bait Al-Qudrat needs access to your camera to take a profile picture."
+        }
+      ]
     ],
     "extra": {
       "moyasarPublishableKey": "pk_live_RTLhrirJgwnwTySd34jrqtdmFvWQYKbJZrNGVtpp",

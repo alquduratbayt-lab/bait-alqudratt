@@ -8,9 +8,14 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Alert,
+  ActionSheetIOS,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Path, Circle } from 'react-native-svg';
+import * as ImagePicker from 'expo-image-picker';
 
 // أيقونة السهم للخلف
 const BackIcon = () => (
@@ -42,6 +47,75 @@ export default function ParentEditProfileScreen({ navigation, route }) {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('••••••••');
   const [showPassword, setShowPassword] = useState(false);
+  const [profileImage, setProfileImage] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  // تغيير صورة الملف الشخصي
+  const handleChangePhoto = () => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['إلغاء', 'التقاط صورة', 'اختيار من المعرض'],
+          cancelButtonIndex: 0,
+        },
+        async (buttonIndex) => {
+          if (buttonIndex === 1) {
+            await openCamera();
+          } else if (buttonIndex === 2) {
+            await openGallery();
+          }
+        }
+      );
+    } else {
+      Alert.alert(
+        'تغيير الصورة',
+        'اختر مصدر الصورة',
+        [
+          { text: 'إلغاء', style: 'cancel' },
+          { text: 'الكاميرا', onPress: openCamera },
+          { text: 'المعرض', onPress: openGallery },
+        ]
+      );
+    }
+  };
+
+  const openCamera = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('صلاحية مطلوبة', 'نحتاج صلاحية الكاميرا لالتقاط صورة');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setProfileImage(result.assets[0].uri);
+    }
+  };
+
+  const openGallery = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('صلاحية مطلوبة', 'نحتاج صلاحية الوصول للصور');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setProfileImage(result.assets[0].uri);
+    }
+  };
 
   const handleSave = () => {
     console.log('Saving:', { name, phone, password });
@@ -67,9 +141,17 @@ export default function ParentEditProfileScreen({ navigation, route }) {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* صورة المستخدم */}
         <View style={styles.avatarContainer}>
-          <UserAvatar />
-          <TouchableOpacity>
-            <Text style={styles.changePhotoText}>تغيير الصورة</Text>
+          {profileImage ? (
+            <Image source={{ uri: profileImage }} style={styles.avatarImage} />
+          ) : (
+            <UserAvatar />
+          )}
+          <TouchableOpacity onPress={handleChangePhoto} disabled={uploadingImage}>
+            {uploadingImage ? (
+              <ActivityIndicator size="small" color="#0ea5e9" style={{ marginTop: 12 }} />
+            ) : (
+              <Text style={styles.changePhotoText}>تغيير الصورة</Text>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -170,6 +252,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#0ea5e9',
     marginTop: 12,
+  },
+  avatarImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 3,
+    borderColor: '#0ea5e9',
   },
   formContainer: {
     marginBottom: 30,

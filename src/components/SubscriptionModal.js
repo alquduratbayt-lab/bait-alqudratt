@@ -95,13 +95,7 @@ export default function SubscriptionModal({ visible, onClose, onSubscribe, hideS
             <Text style={styles.title}>هذا المحتوى للمشتركين فقط</Text>
             
             {/* الوصف */}
-            <Text style={styles.description}>للاشتراك والحصول على جميع المميزات:</Text>
-
-            {/* رسالة الموقع */}
-            <View style={styles.websiteNotice}>
-              <Text style={styles.websiteText}>قم بزيارة موقعنا</Text>
-              <Text style={styles.websiteUrl}>bait-alqudratt.com</Text>
-            </View>
+            <Text style={styles.description}>اشترك للحصول على جميع المميزات</Text>
 
             {/* المميزات */}
             <View style={styles.featuresContainer}>
@@ -261,26 +255,6 @@ const styles = StyleSheet.create({
     color: '#666',
     fontWeight: '600',
     textAlign: 'center',
-  },
-  websiteNotice: {
-    backgroundColor: '#e3f2fd',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#2196F3',
-    borderStyle: 'dashed',
-  },
-  websiteText: {
-    fontSize: 14,
-    color: '#1976D2',
-    marginBottom: 4,
-  },
-  websiteUrl: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1565C0',
   },
   closeButton: {
     width: '100%',

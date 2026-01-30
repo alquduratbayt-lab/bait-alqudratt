@@ -17,9 +17,10 @@ import { StatusBar } from 'expo-status-bar';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { supabase } from '../lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { FormFieldSkeleton } from '../components/SkeletonLoader';
+import { clearCache } from '../lib/cacheService';
 
 // أيقونة السهم للخلف
 const BackIcon = () => (
@@ -235,8 +236,8 @@ export default function EditProfileScreen({ navigation }) {
       console.log('Profile image updated successfully');
       console.log('New profileImage state:', publicUrl);
       
-      // إعادة تحميل بيانات المستخدم للتأكد من التحديث
-      await fetchUserData();
+      // مسح الـ Cache قبل إعادة التحميل
+      await clearCache(`user_edit_profile_${userId}`);
       
       Alert.alert('نجح', 'تم تحديث الصورة بنجاح');
     } catch (error) {

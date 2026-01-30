@@ -87,6 +87,7 @@ const menuItems = [
   { id: '1', title: 'التفاصيل الشخصية' },
   { id: '2', title: 'التفاصيل الابن' },
   { id: '3', title: 'الدعم الفني' },
+  { id: '4', title: 'سياسة الخصوصية والاستخدام' },
 ];
 
 export default function ParentProfileScreen({ navigation, route }) {
@@ -207,6 +208,7 @@ export default function ParentProfileScreen({ navigation, route }) {
                 if (item.id === '1') navigation.navigate('ParentEditProfile', { parentName });
                 if (item.id === '2') navigation.navigate('ParentChildren');
                 if (item.id === '3') navigation.navigate('Support');
+                if (item.id === '4') navigation.navigate('PrivacyPolicy');
               }}
             >
               <ChevronIcon />

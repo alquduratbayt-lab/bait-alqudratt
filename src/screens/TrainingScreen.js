@@ -148,7 +148,7 @@ export default function TrainingScreen({ navigation }) {
         visible={alertVisible}
         type="warning"
         title="اشترك للوصول"
-        message="التدريب المباشر متاح فقط للمشتركين في الباقة المميزة. للاشتراك، قم بزيارة موقعنا: bait-alqudratt.com"
+        message="التدريب المباشر متاح فقط للمشتركين في الباقة المميزة."
         buttons={[
           { text: 'حسناً', onPress: () => {
             setAlertVisible(false);

@@ -409,10 +409,6 @@ export default function ExamScreen({ navigation, route }) {
                   </View>
                 </View>
                 
-                <View style={styles.websiteNotice}>
-                  <Text style={styles.websiteText}>للاشتراك، قم بزيارة موقعنا</Text>
-                  <Text style={styles.websiteUrl}>bait-alqudratt.com</Text>
-                </View>
                 
                 <TouchableOpacity
                   style={styles.backButton}

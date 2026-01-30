@@ -164,12 +164,10 @@ export default function ProfileScreen({ navigation }) {
   useFocusEffect(
     React.useCallback(() => {
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+      // إعادة تحميل البيانات عند كل مرة تظهر فيها الشاشة
+      fetchUserData();
     }, [])
   );
-
-  useEffect(() => {
-    fetchUserData();
-  }, []);
 
   const fetchUserData = async () => {
     try {

@@ -132,12 +132,6 @@ const SubscriptionCard = ({ data, onRenew }) => {
         </View>
       </View>
 
-      {data.tier !== 'free' && data.status !== 'active' && (
-        <View style={styles.websiteNotice}>
-          <Text style={styles.websiteText}>للتجديد، قم بزيارة موقعنا</Text>
-          <Text style={styles.websiteUrl}>bait-alqudratt.com</Text>
-        </View>
-      )}
     </View>
   );
 };

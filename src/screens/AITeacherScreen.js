@@ -387,7 +387,7 @@ export default function AITeacherScreen({ navigation }) {
         visible={alertVisible}
         type="warning"
         title="اشترك للوصول"
-        message="المعلم الذكي متاح فقط للمشتركين. للاشتراك، قم بزيارة موقعنا: bait-alqudratt.com"
+        message="المعلم الذكي متاح فقط للمشتركين."
         buttons={[
           { text: 'حسناً', onPress: () => {
             setAlertVisible(false);

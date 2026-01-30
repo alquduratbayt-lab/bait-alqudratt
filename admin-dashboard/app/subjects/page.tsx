@@ -22,7 +22,8 @@ export default function SubjectsPage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newSubject, setNewSubject] = useState({ name: '', type: '', description: '', passing_percentage: 80, icon_file: null as File | null });
+  const [newSubject, setNewSubject] = useState({ id: null as string | null, name: '', type: '', description: '', passing_percentage: 80, icon_file: null as File | null });
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     fetchSubjects();
@@ -44,7 +45,7 @@ export default function SubjectsPage() {
     }
   };
 
-  const handleAddSubject = async () => {
+  const handleSaveSubject = async () => {
     if (!newSubject.name || !newSubject.type) {
       alert('الرجاء ملء جميع الحقول');
       return;
@@ -69,28 +70,52 @@ export default function SubjectsPage() {
         iconUrl = publicUrl;
       }
 
-      const { data, error } = await supabase
-        .from('subjects')
-        .insert([{
+      if (isEditing && newSubject.id) {
+        // تحديث المادة الموجودة
+        const updateData: any = {
           name: newSubject.name,
           type: newSubject.type,
           description: newSubject.description,
           passing_percentage: newSubject.passing_percentage,
-          icon_url: iconUrl,
-          lessons_count: 0,
-          duration: 0
-        }])
-        .select();
+        };
+        if (iconUrl) updateData.icon_url = iconUrl;
 
-      if (error) throw error;
-      
-      setSubjects([...data, ...subjects]);
+        const { error } = await supabase
+          .from('subjects')
+          .update(updateData)
+          .eq('id', newSubject.id);
+
+        if (error) throw error;
+        
+        setSubjects(subjects.map(s => s.id === newSubject.id ? { ...s, ...updateData } : s));
+        alert('تم تحديث المنهج بنجاح!');
+      } else {
+        // إضافة مادة جديدة
+        const { data, error } = await supabase
+          .from('subjects')
+          .insert([{
+            name: newSubject.name,
+            type: newSubject.type,
+            description: newSubject.description,
+            passing_percentage: newSubject.passing_percentage,
+            icon_url: iconUrl,
+            lessons_count: 0,
+            duration: 0
+          }])
+          .select();
+
+        if (error) throw error;
+        
+        setSubjects([...data, ...subjects]);
+        alert('تم إضافة المنهج بنجاح!');
+      }
+
       setShowAddModal(false);
-      setNewSubject({ name: '', type: '', description: '', passing_percentage: 80, icon_file: null });
-      alert('تم إضافة المنهج بنجاح!');
+      setIsEditing(false);
+      setNewSubject({ id: null, name: '', type: '', description: '', passing_percentage: 80, icon_file: null });
     } catch (error) {
-      console.error('Error adding subject:', error);
-      alert('حدث خطأ أثناء إضافة المنهج');
+      console.error('Error saving subject:', error);
+      alert('حدث خطأ أثناء حفظ المنهج');
     }
   };
 
@@ -125,7 +150,11 @@ export default function SubjectsPage() {
             </div>
             <div className="flex items-center gap-3">
               <button 
-                onClick={() => setShowAddModal(true)}
+                onClick={() => {
+                  setIsEditing(false);
+                  setNewSubject({ id: null, name: '', type: '', description: '', passing_percentage: 80, icon_file: null });
+                  setShowAddModal(true);
+                }}
                 className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -192,12 +221,14 @@ export default function SubjectsPage() {
                   <button 
                     onClick={() => {
                       setNewSubject({ 
+                        id: subject.id,
                         name: subject.name, 
                         type: subject.type, 
                         description: subject.description || '',
                         passing_percentage: subject.passing_percentage || 80,
                         icon_file: null 
                       });
+                      setIsEditing(true);
                       setShowAddModal(true);
                     }}
                     className="flex-1 px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl hover:from-amber-600 hover:to-orange-600 font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all text-sm"
@@ -223,7 +254,7 @@ export default function SubjectsPage() {
       {showAddModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 animate-fadeIn" onClick={() => setShowAddModal(false)}>
           <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-8 max-w-2xl w-full mx-4 shadow-2xl border border-white/20 animate-slideUp" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-6 text-right">إضافة منهج جديد</h2>
+            <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-6 text-right">{isEditing ? 'تعديل المنهج' : 'إضافة منهج جديد'}</h2>
             
             <div className="space-y-4">
               <div>
@@ -297,10 +328,10 @@ export default function SubjectsPage() {
                 إلغاء
               </button>
               <button
-                onClick={handleAddSubject}
+                onClick={handleSaveSubject}
                 className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl hover:from-indigo-700 hover:to-purple-700 font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all"
               >
-                إضافة
+                {isEditing ? 'حفظ التعديلات' : 'إضافة'}
               </button>
             </div>
           </div>
