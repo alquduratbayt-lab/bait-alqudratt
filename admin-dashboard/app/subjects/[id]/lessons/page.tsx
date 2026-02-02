@@ -82,6 +82,10 @@ export default function LessonsPage() {
   // Video Preview States
   const [showVideoPreview, setShowVideoPreview] = useState(false);
   const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
+  
+  // Video Upload Progress States
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     fetchSubject();
@@ -359,8 +363,16 @@ export default function LessonsPage() {
       let videoPath = currentLesson.video_url;
 
       if (currentLesson.video_file) {
-        // رفع إلى Cloudflare Stream
-        const result = await uploadToCloudflareStream(currentLesson.video_file);
+        // رفع مباشر إلى Bunny.net باستخدام TUS
+        setIsUploading(true);
+        setUploadProgress(0);
+        
+        const result = await uploadToCloudflareStream(
+          currentLesson.video_file,
+          (progress) => setUploadProgress(progress)
+        );
+        
+        setIsUploading(false);
         
         if (!result.success) {
           alert(`خطأ في رفع الفيديو: ${result.error}`);
@@ -919,6 +931,30 @@ export default function LessonsPage() {
                       <input type="text" value={currentLesson.video_url} onChange={(e) => setCurrentLesson({ ...currentLesson, video_url: e.target.value })} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-right focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all text-gray-800 font-semibold" placeholder="رابط الفيديو (YouTube, Vimeo, etc.)" />
                       <div className="text-center text-gray-500">أو</div>
                       <input type="file" accept="video/*" onChange={handleVideoFileChange} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all font-semibold" />
+                      
+                      {/* شريط تقدم رفع الفيديو */}
+                      {isUploading && (
+                        <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-bold text-blue-700">جاري الرفع...</span>
+                            <span className="text-lg font-bold text-indigo-600">{uploadProgress}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                            <div 
+                              className="bg-gradient-to-r from-blue-500 to-indigo-600 h-4 rounded-full transition-all duration-300 ease-out"
+                              style={{ width: `${uploadProgress}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      
+                      {currentLesson.video_file && !isUploading && (
+                        <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                          <p className="text-sm text-green-700 text-right">
+                            ✅ تم اختيار: <strong>{currentLesson.video_file.name}</strong> ({(currentLesson.video_file.size / (1024 * 1024)).toFixed(2)} MB)
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1044,32 +1080,62 @@ export default function LessonsPage() {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-sm text-gray-600 mb-1 text-right">وقت الظهور (ساعة:دقيقة:ثانية)</label>
-                          <input 
-                            type="text" 
-                            value={(() => {
-                              const totalSeconds = question.show_at_time || 0;
-                              const hours = Math.floor(totalSeconds / 3600);
-                              const minutes = Math.floor((totalSeconds % 3600) / 60);
-                              const seconds = totalSeconds % 60;
-                              return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                            })()} 
-                            onChange={(e) => {
-                              const timeStr = e.target.value;
-                              const parts = timeStr.split(':');
-                              if (parts.length === 3) {
-                                const hours = parseInt(parts[0]) || 0;
-                                const minutes = parseInt(parts[1]) || 0;
-                                const seconds = parseInt(parts[2]) || 0;
-                                const totalSeconds = hours * 3600 + minutes * 60 + seconds;
-                                updateQuestion(index, 'show_at_time', totalSeconds);
-                              }
-                            }} 
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg text-center placeholder:text-gray-400 text-gray-900 font-mono text-lg" 
-                            placeholder="00:01:30" 
-                            pattern="[0-9]{2}:[0-9]{2}:[0-9]{2}"
-                          />
-                          <p className="text-xs text-gray-500 mt-1 text-right">مثال: 00:01:30 (دقيقة ونصف)</p>
+                          <label className="block text-sm text-gray-600 mb-1 text-right">وقت الظهور</label>
+                          <div className="flex items-center gap-1 justify-center">
+                            <div className="flex flex-col items-center">
+                              <input 
+                                type="number" 
+                                min="0"
+                                max="59"
+                                value={Math.floor((question.show_at_time || 0) % 60)}
+                                onChange={(e) => {
+                                  const totalSeconds = question.show_at_time || 0;
+                                  const hours = Math.floor(totalSeconds / 3600);
+                                  const minutes = Math.floor((totalSeconds % 3600) / 60);
+                                  const newSeconds = parseInt(e.target.value) || 0;
+                                  updateQuestion(index, 'show_at_time', hours * 3600 + minutes * 60 + newSeconds);
+                                }} 
+                                className="w-16 px-2 py-2 border border-gray-300 rounded-lg text-center text-gray-900 font-mono text-lg" 
+                              />
+                              <span className="text-xs text-gray-500 mt-1">ثانية</span>
+                            </div>
+                            <span className="text-xl font-bold text-gray-400 mb-5">:</span>
+                            <div className="flex flex-col items-center">
+                              <input 
+                                type="number" 
+                                min="0"
+                                max="59"
+                                value={Math.floor(((question.show_at_time || 0) % 3600) / 60)}
+                                onChange={(e) => {
+                                  const totalSeconds = question.show_at_time || 0;
+                                  const hours = Math.floor(totalSeconds / 3600);
+                                  const seconds = totalSeconds % 60;
+                                  const newMinutes = parseInt(e.target.value) || 0;
+                                  updateQuestion(index, 'show_at_time', hours * 3600 + newMinutes * 60 + seconds);
+                                }} 
+                                className="w-16 px-2 py-2 border border-gray-300 rounded-lg text-center text-gray-900 font-mono text-lg" 
+                              />
+                              <span className="text-xs text-gray-500 mt-1">دقيقة</span>
+                            </div>
+                            <span className="text-xl font-bold text-gray-400 mb-5">:</span>
+                            <div className="flex flex-col items-center">
+                              <input 
+                                type="number" 
+                                min="0"
+                                max="23"
+                                value={Math.floor((question.show_at_time || 0) / 3600)}
+                                onChange={(e) => {
+                                  const totalSeconds = question.show_at_time || 0;
+                                  const minutes = Math.floor((totalSeconds % 3600) / 60);
+                                  const seconds = totalSeconds % 60;
+                                  const newHours = parseInt(e.target.value) || 0;
+                                  updateQuestion(index, 'show_at_time', newHours * 3600 + minutes * 60 + seconds);
+                                }} 
+                                className="w-16 px-2 py-2 border border-gray-300 rounded-lg text-center text-gray-900 font-mono text-lg" 
+                              />
+                              <span className="text-xs text-gray-500 mt-1">ساعة</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>

@@ -66,7 +66,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-                {adminName.charAt(0)}
+                {adminName?.charAt(0) || 'م'}
               </div>
               <div className="text-right">
                 <div className="text-sm font-semibold text-gray-800">{adminName}</div>

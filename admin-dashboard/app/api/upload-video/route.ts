@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 
 export const runtime = 'nodejs';
-export const maxDuration = 300; // 5 minutes timeout for large videos
+export const maxDuration = 60;
 
+// POST: إنشاء فيديو جديد والحصول على بيانات TUS للرفع المباشر
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData();
-    // @ts-ignore - FormData.get() is supported in Next.js runtime
-    const fileEntry = formData.get('file') as FormDataEntryValue | null;
-    const file = fileEntry instanceof File ? fileEntry : null;
+    const body = await request.json();
+    const { fileName, fileSize } = body;
 
-    if (!file) {
+    if (!fileName) {
       return NextResponse.json(
-        { success: false, error: 'No file provided' },
+        { success: false, error: 'fileName is required' },
         { status: 400 }
       );
     }
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title: file.name,
+          title: fileName,
         }),
       }
     );
@@ -55,29 +55,12 @@ export async function POST(request: NextRequest) {
     const createData = await createResponse.json();
     const videoId = createData.guid;
 
-    // 2. رفع الفيديو إلى Bunny.net
-    const uploadResponse = await fetch(
-      `https://video.bunnycdn.com/library/${libraryId}/videos/${videoId}`,
-      {
-        method: 'PUT',
-        headers: {
-          'AccessKey': apiKey,
-        },
-        body: file,
-      }
-    );
+    // 2. إنشاء توقيع TUS للرفع المباشر
+    const expirationTime = Math.floor(Date.now() / 1000) + 3600; // صالح لمدة ساعة
+    const signatureString = `${libraryId}${apiKey}${expirationTime}${videoId}`;
+    const signature = crypto.createHash('sha256').update(signatureString).digest('hex');
 
-    if (!uploadResponse.ok) {
-      const errorText = await uploadResponse.text();
-      console.error('Bunny upload error:', errorText);
-      return NextResponse.json(
-        { success: false, error: `Failed to upload video: ${uploadResponse.status}` },
-        { status: uploadResponse.status }
-      );
-    }
-
-    // 3. إرجاع معلومات الفيديو
-    // استخدام HLS - متاح فوراً ويعمل مع expo-video بشكل ممتاز
+    // 3. إرجاع بيانات الرفع
     const playbackUrl = `https://${cdnHostname}/${videoId}/playlist.m3u8`;
     const thumbnailUrl = `https://${cdnHostname}/${videoId}/thumbnail.jpg`;
 
@@ -86,9 +69,18 @@ export async function POST(request: NextRequest) {
       videoId,
       playbackUrl,
       thumbnailUrl,
+      tusUpload: {
+        endpoint: `https://video.bunnycdn.com/tusupload`,
+        headers: {
+          'AuthorizationSignature': signature,
+          'AuthorizationExpire': expirationTime.toString(),
+          'VideoId': videoId,
+          'LibraryId': libraryId,
+        },
+      },
     });
   } catch (error: any) {
-    console.error('Error uploading video:', error);
+    console.error('Error creating video:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Unknown error occurred' },
       { status: 500 }

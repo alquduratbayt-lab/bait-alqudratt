@@ -1,10 +1,7 @@
-// Cloudflare Stream Integration
-// التكامل مع Cloudflare Stream لرفع وإدارة الفيديوهات
+// Bunny.net Stream Integration with TUS Direct Upload
+// التكامل مع Bunny.net لرفع الفيديوهات مباشرة من المتصفح
 
-interface CloudflareConfig {
-  accountId: string;
-  apiToken: string;
-}
+import * as tus from 'tus-js-client';
 
 interface UploadResponse {
   success: boolean;
@@ -14,10 +11,16 @@ interface UploadResponse {
   error?: string;
 }
 
+interface UploadCallbacks {
+  onProgress?: (progress: number) => void;
+  onSuccess?: (response: UploadResponse) => void;
+  onError?: (error: string) => void;
+}
+
 /**
- * رفع فيديو إلى Cloudflare Stream
+ * رفع فيديو مباشرة إلى Bunny.net باستخدام TUS
  * @param videoFile - ملف الفيديو
- * @param onProgress - دالة لتتبع تقدم الرفع (اختياري)
+ * @param callbacks - دوال callback للتقدم والنجاح والخطأ
  * @returns معلومات الفيديو المرفوع
  */
 export const uploadToCloudflareStream = async (
@@ -25,56 +28,78 @@ export const uploadToCloudflareStream = async (
   onProgress?: (progress: number) => void
 ): Promise<UploadResponse> => {
   try {
-    // استخدام API route للرفع (لتجنب مشاكل CORS)
+    // 1. إنشاء الفيديو والحصول على بيانات TUS من السيرفر
+    const createResponse = await fetch('/api/upload-video', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        fileName: videoFile.name,
+        fileSize: videoFile.size,
+      }),
+    });
+
+    if (!createResponse.ok) {
+      const errorData = await createResponse.json();
+      return {
+        success: false,
+        error: errorData.error || `خطأ في إنشاء الفيديو: ${createResponse.status}`,
+      };
+    }
+
+    const createData = await createResponse.json();
+    
+    if (!createData.success) {
+      return {
+        success: false,
+        error: createData.error || 'فشل في إنشاء الفيديو',
+      };
+    }
+
+    const { videoId, playbackUrl, thumbnailUrl, tusUpload } = createData;
+
+    // 2. رفع الفيديو مباشرة إلى Bunny.net باستخدام TUS
     return new Promise<UploadResponse>((resolve) => {
-      const xhr = new XMLHttpRequest();
-      const formData = new FormData();
-      formData.append('file', videoFile);
-
-      xhr.open('POST', '/api/upload-video', true);
-
-      xhr.onload = function() {
-        if (xhr.status === 200) {
-          try {
-            const response = JSON.parse(xhr.responseText);
-            resolve(response);
-          } catch (e) {
-            resolve({
-              success: false,
-              error: 'فشل في معالجة الاستجابة',
-            });
-          }
-        } else {
+      const upload = new tus.Upload(videoFile, {
+        endpoint: tusUpload.endpoint,
+        retryDelays: [0, 3000, 5000, 10000, 20000],
+        headers: tusUpload.headers,
+        metadata: {
+          filename: videoFile.name,
+          filetype: videoFile.type,
+        },
+        onError: (error) => {
+          console.error('TUS upload error:', error);
           resolve({
             success: false,
-            error: `خطأ في الرفع: ${xhr.status}`,
+            error: `خطأ في رفع الفيديو: ${error.message}`,
           });
-        }
-      };
-
-      xhr.onerror = function() {
-        resolve({
-          success: false,
-          error: 'فشل الاتصال بالسيرفر',
-        });
-      };
-
-      if (onProgress) {
-        xhr.upload.onprogress = function(e) {
-          if (e.lengthComputable) {
-            const percent = (e.loaded / e.total) * 100;
-            onProgress(percent);
+        },
+        onProgress: (bytesUploaded, bytesTotal) => {
+          const percentage = Math.round((bytesUploaded / bytesTotal) * 100);
+          if (onProgress) {
+            onProgress(percentage);
           }
-        };
-      }
+        },
+        onSuccess: () => {
+          resolve({
+            success: true,
+            videoId,
+            playbackUrl,
+            thumbnailUrl,
+          });
+        },
+      });
 
-      xhr.send(formData);
+      // بدء الرفع
+      upload.start();
     });
   } catch (error: any) {
-    console.error('Error uploading to Cloudflare Stream:', error);
+    console.error('Error uploading video:', error);
     return {
       success: false,
-      error: error.message || 'Unknown error occurred',
+      error: error.message || 'حدث خطأ غير متوقع',
     };
   }
 };

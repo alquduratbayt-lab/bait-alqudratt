@@ -298,7 +298,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-center min-h-[60vh]">
               <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-12 shadow-xl border border-gray-200 text-center max-w-2xl">
                 <div className="w-24 h-24 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white text-4xl font-bold mx-auto mb-6">
-                  {adminName.charAt(0)}
+                  {adminName?.charAt(0) || 'م'}
                 </div>
                 <h1 className="text-3xl font-bold text-gray-800 mb-4">مرحباً {adminName}! 👋</h1>
                 <p className="text-lg text-gray-600 mb-6">
