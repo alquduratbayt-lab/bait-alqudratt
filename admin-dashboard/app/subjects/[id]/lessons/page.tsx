@@ -472,18 +472,31 @@ export default function LessonsPage() {
             }
           }
           
-          // دالة لتنظيف HTML (الحفاظ على الجداول)
+          // دالة لتنظيف HTML (إزالة كود Word/XML)
           const cleanHtml = (html: string) => {
             if (!html) return '';
             
-            // إزالة Word fragments
             let clean = html
+              // إزالة Word fragments
               .replace(/<!--StartFragment-->/g, '')
-              .replace(/<!--EndFragment-->/g, '');
-            
-            // الحفاظ على HTML الكامل (بما في ذلك الجداول)
-            clean = clean
+              .replace(/<!--EndFragment-->/g, '')
+              // إزالة جميع التعليقات
+              .replace(/<!--[\s\S]*?-->/g, '')
+              // إزالة XML tags من Word
+              .replace(/<o:p[^>]*>[\s\S]*?<\/o:p>/gi, '')
+              .replace(/<w:[^>]*>[\s\S]*?<\/w:[^>]*>/gi, '')
+              .replace(/<m:[^>]*>[\s\S]*?<\/m:[^>]*>/gi, '')
+              .replace(/<v:[^>]*>[\s\S]*?<\/v:[^>]*>/gi, '')
+              // إزالة XML namespaces
+              .replace(/<\/?[a-z]+:[^>]*>/gi, '')
+              // إزالة style attributes من Word
+              .replace(/\s*mso-[^:]+:[^;"]+;?/gi, '')
+              .replace(/\s*class="Mso[^"]*"/gi, '')
+              // إزالة spans فارغة
+              .replace(/<span[^>]*>\s*<\/span>/gi, '')
+              // تنظيف المسافات
               .replace(/&nbsp;/g, ' ')
+              .replace(/\s+/g, ' ')
               .trim();
             
             return clean;
@@ -524,18 +537,31 @@ export default function LessonsPage() {
           }
         }
 
-        // دالة لتنظيف HTML (الحفاظ على الجداول)
+        // دالة لتنظيف HTML (إزالة كود Word/XML)
         const cleanHtml = (html: string) => {
           if (!html) return '';
           
-          // إزالة Word fragments
           let clean = html
+            // إزالة Word fragments
             .replace(/<!--StartFragment-->/g, '')
-            .replace(/<!--EndFragment-->/g, '');
-          
-          // الحفاظ على HTML الكامل (بما في ذلك الجداول)
-          clean = clean
+            .replace(/<!--EndFragment-->/g, '')
+            // إزالة جميع التعليقات
+            .replace(/<!--[\s\S]*?-->/g, '')
+            // إزالة XML tags من Word
+            .replace(/<o:p[^>]*>[\s\S]*?<\/o:p>/gi, '')
+            .replace(/<w:[^>]*>[\s\S]*?<\/w:[^>]*>/gi, '')
+            .replace(/<m:[^>]*>[\s\S]*?<\/m:[^>]*>/gi, '')
+            .replace(/<v:[^>]*>[\s\S]*?<\/v:[^>]*>/gi, '')
+            // إزالة XML namespaces
+            .replace(/<\/?[a-z]+:[^>]*>/gi, '')
+            // إزالة style attributes من Word
+            .replace(/\s*mso-[^:]+:[^;"]+;?/gi, '')
+            .replace(/\s*class="Mso[^"]*"/gi, '')
+            // إزالة spans فارغة
+            .replace(/<span[^>]*>\s*<\/span>/gi, '')
+            // تنظيف المسافات
             .replace(/&nbsp;/g, ' ')
+            .replace(/\s+/g, ' ')
             .trim();
           
           return clean;
@@ -1099,10 +1125,22 @@ export default function LessonsPage() {
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
-                        <input type="text" value={question.option_a} onChange={(e) => updateQuestion(index, 'option_a', e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold" placeholder="الخيار A" />
-                        <input type="text" value={question.option_b} onChange={(e) => updateQuestion(index, 'option_b', e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold" placeholder="الخيار B" />
-                        <input type="text" value={question.option_c} onChange={(e) => updateQuestion(index, 'option_c', e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold" placeholder="الخيار C" />
-                        <input type="text" value={question.option_d} onChange={(e) => updateQuestion(index, 'option_d', e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold" placeholder="الخيار D" />
+                        <div className="flex gap-2">
+                          <input type="text" value={question.option_a} onChange={(e) => updateQuestion(index, 'option_a', e.target.value)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold" placeholder="الخيار A" />
+                          <button type="button" onClick={() => { setCurrentMathField({ type: 'question', index, field: 'option_a' }); setTempLatex(''); setShowMathEditor(true); }} className="px-2 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition" title="إضافة معادلة">∑</button>
+                        </div>
+                        <div className="flex gap-2">
+                          <input type="text" value={question.option_b} onChange={(e) => updateQuestion(index, 'option_b', e.target.value)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold" placeholder="الخيار B" />
+                          <button type="button" onClick={() => { setCurrentMathField({ type: 'question', index, field: 'option_b' }); setTempLatex(''); setShowMathEditor(true); }} className="px-2 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition" title="إضافة معادلة">∑</button>
+                        </div>
+                        <div className="flex gap-2">
+                          <input type="text" value={question.option_c} onChange={(e) => updateQuestion(index, 'option_c', e.target.value)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold" placeholder="الخيار C" />
+                          <button type="button" onClick={() => { setCurrentMathField({ type: 'question', index, field: 'option_c' }); setTempLatex(''); setShowMathEditor(true); }} className="px-2 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition" title="إضافة معادلة">∑</button>
+                        </div>
+                        <div className="flex gap-2">
+                          <input type="text" value={question.option_d} onChange={(e) => updateQuestion(index, 'option_d', e.target.value)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold" placeholder="الخيار D" />
+                          <button type="button" onClick={() => { setCurrentMathField({ type: 'question', index, field: 'option_d' }); setTempLatex(''); setShowMathEditor(true); }} className="px-2 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition" title="إضافة معادلة">∑</button>
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
@@ -1237,10 +1275,22 @@ export default function LessonsPage() {
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
-                        <input type="text" value={question.option_a} onChange={(e) => updateExamQuestion(index, 'option_a', e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold" placeholder="الخيار A" />
-                        <input type="text" value={question.option_b} onChange={(e) => updateExamQuestion(index, 'option_b', e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold" placeholder="الخيار B" />
-                        <input type="text" value={question.option_c} onChange={(e) => updateExamQuestion(index, 'option_c', e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold" placeholder="الخيار C" />
-                        <input type="text" value={question.option_d} onChange={(e) => updateExamQuestion(index, 'option_d', e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold" placeholder="الخيار D" />
+                        <div className="flex gap-2">
+                          <input type="text" value={question.option_a} onChange={(e) => updateExamQuestion(index, 'option_a', e.target.value)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold" placeholder="الخيار A" />
+                          <button type="button" onClick={() => { setCurrentMathField({ type: 'exam', index, field: 'option_a' }); setTempLatex(''); setShowMathEditor(true); }} className="px-2 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition" title="إضافة معادلة">∑</button>
+                        </div>
+                        <div className="flex gap-2">
+                          <input type="text" value={question.option_b} onChange={(e) => updateExamQuestion(index, 'option_b', e.target.value)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold" placeholder="الخيار B" />
+                          <button type="button" onClick={() => { setCurrentMathField({ type: 'exam', index, field: 'option_b' }); setTempLatex(''); setShowMathEditor(true); }} className="px-2 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition" title="إضافة معادلة">∑</button>
+                        </div>
+                        <div className="flex gap-2">
+                          <input type="text" value={question.option_c} onChange={(e) => updateExamQuestion(index, 'option_c', e.target.value)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold" placeholder="الخيار C" />
+                          <button type="button" onClick={() => { setCurrentMathField({ type: 'exam', index, field: 'option_c' }); setTempLatex(''); setShowMathEditor(true); }} className="px-2 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition" title="إضافة معادلة">∑</button>
+                        </div>
+                        <div className="flex gap-2">
+                          <input type="text" value={question.option_d} onChange={(e) => updateExamQuestion(index, 'option_d', e.target.value)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold" placeholder="الخيار D" />
+                          <button type="button" onClick={() => { setCurrentMathField({ type: 'exam', index, field: 'option_d' }); setTempLatex(''); setShowMathEditor(true); }} className="px-2 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition" title="إضافة معادلة">∑</button>
+                        </div>
                       </div>
 
                       <div>
