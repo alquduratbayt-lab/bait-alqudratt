@@ -400,6 +400,28 @@ export default function LessonsPage() {
         if (updateError) throw updateError;
         lessonData = data;
 
+        // جلب IDs الأسئلة القديمة لحذف الإجابات المرتبطة بها أولاً
+        const { data: oldQuestions } = await supabase
+          .from('questions')
+          .select('id')
+          .eq('lesson_id', editingLessonId);
+        
+        if (oldQuestions && oldQuestions.length > 0) {
+          const questionIds = oldQuestions.map(q => q.id);
+          
+          // حذف إجابات الأسئلة أولاً (video_question_answers)
+          await supabase
+            .from('video_question_answers')
+            .delete()
+            .in('question_id', questionIds);
+          
+          // حذف نماذج الأسئلة (question_variants)
+          await supabase
+            .from('question_variants')
+            .delete()
+            .in('original_question_id', questionIds);
+        }
+        
         // حذف الأسئلة القديمة مع التحقق من نجاح العملية
         const { error: deleteError } = await supabase
           .from('questions')
