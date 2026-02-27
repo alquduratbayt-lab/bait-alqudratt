@@ -192,8 +192,8 @@ export default function OTPVerificationScreen({ route, navigation }) {
       // إنشاء سجل في جدول users
       let parentId = null;
       
-      // إذا كان طالب، نبحث عن parent_id من parent_phone
-      if (userData.type === 'student' && userData.parent_phone) {
+      // إذا كان طالب، نبحث عن parent_id من parent_phone (اختياري)
+      if (userData.type === 'student' && userData.parent_phone && userData.parent_phone.trim()) {
         // تنسيق رقم ولي الأمر بنفس الطريقة
         let parentPhone = userData.parent_phone.trim();
         parentPhone = parentPhone.replace(/\s/g, '');
@@ -214,7 +214,7 @@ export default function OTPVerificationScreen({ route, navigation }) {
         console.log('رقم ولي الأمر المدخل:', userData.parent_phone);
         console.log('رقم ولي الأمر المنسق:', parentPhone);
         
-        // البحث عن ولي الأمر في قاعدة البيانات
+        // البحث عن ولي الأمر في قاعدة البيانات (اختياري - لا يمنع التسجيل)
         const { data: parentData, error: parentError } = await supabase
           .from('users')
           .select('id')
@@ -223,13 +223,8 @@ export default function OTPVerificationScreen({ route, navigation }) {
           .single();
         
         if (parentError) {
-          console.error('خطأ في البحث عن ولي الأمر:', parentError);
-          Alert.alert(
-            'خطأ',
-            'رقم ولي الأمر غير مسجل في النظام.\n\nيجب على ولي الأمر التسجيل أولاً قبل تسجيل الطالب.',
-            [{ text: 'حسناً' }]
-          );
-          return;
+          console.log('⚠️ ولي الأمر غير مسجل - سيتم التسجيل بدون ربط:', parentError.message);
+          // لا نوقف التسجيل، فقط نستمر بدون parent_id
         }
         
         if (parentData) {

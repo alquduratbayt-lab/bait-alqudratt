@@ -948,14 +948,15 @@ export default function LessonDetailScreen({ navigation, route }) {
               <Text style={styles.questionsTitle}>إجابات صحيحة:</Text>
               {questionResults.filter(r => r.isCorrect).map((result, index) => (
                 <View key={index} style={styles.questionResultCard}>
-                  {result.question.question_image_url ? (
+                  {result.question.question_text && result.question.question_text.trim() !== '' && (
+                    <HtmlRenderer html={result.question.question_text} style={styles.questionResultText} />
+                  )}
+                  {result.question.question_image_url && (
                     <Image 
                       source={{ uri: result.question.question_image_url }} 
                       style={styles.questionResultImage}
                       resizeMode="contain"
                     />
-                  ) : (
-                    <HtmlRenderer html={result.question.question_text} style={styles.questionResultText} />
                   )}
                   <View style={styles.answerRow}>
                     <View style={styles.answerIcon}>
@@ -986,14 +987,15 @@ export default function LessonDetailScreen({ navigation, route }) {
                         <Path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke="#2196F3" strokeWidth={2} fill="#e3f2fd" />
                       </Svg>
                     </TouchableOpacity>
-                    {result.question.question_image_url ? (
+                    {result.question.question_text && result.question.question_text.trim() !== '' && (
+                      <HtmlRenderer html={result.question.question_text} style={styles.questionResultText} />
+                    )}
+                    {result.question.question_image_url && (
                       <Image 
                         source={{ uri: result.question.question_image_url }} 
                         style={styles.questionResultImage}
                         resizeMode="contain"
                       />
-                    ) : (
-                      <HtmlRenderer html={result.question.question_text} style={styles.questionResultText} />
                     )}
                   </View>
                   <View style={styles.answerRow}>
@@ -1171,16 +1173,29 @@ export default function LessonDetailScreen({ navigation, route }) {
           <View style={styles.questionContainer}>
             <Text style={styles.questionTitle}>سؤال</Text>
             
-            {currentQuestion.question_image_url ? (
+            {/* عرض صورة السؤال أولاً إذا لم يكن هناك نص */}
+            {currentQuestion.question_image_url && (!currentQuestion.question_text || currentQuestion.question_text.trim() === '') && (
+              <Image 
+                source={{ uri: currentQuestion.question_image_url }} 
+                style={styles.questionImageOnly}
+                resizeMode="contain"
+              />
+            )}
+            
+            {/* عرض نص السؤال إذا كان موجوداً */}
+            {currentQuestion.question_text && currentQuestion.question_text.trim() !== '' && (
+              <HtmlRenderer 
+                html={currentQuestion.question_text} 
+                style={styles.questionText}
+              />
+            )}
+            
+            {/* عرض صورة السؤال بعد النص إذا كان هناك نص */}
+            {currentQuestion.question_image_url && currentQuestion.question_text && currentQuestion.question_text.trim() !== '' && (
               <Image 
                 source={{ uri: currentQuestion.question_image_url }} 
                 style={styles.questionImage}
                 resizeMode="contain"
-              />
-            ) : (
-              <HtmlRenderer 
-                html={currentQuestion.question_text} 
-                style={styles.questionText}
               />
             )}
             
@@ -1482,7 +1497,7 @@ const styles = StyleSheet.create({
       fontSize: 18,
       fontWeight: 'bold',
       color: '#2196F3',
-      marginBottom: 10,
+      marginBottom: 5,
       textAlign: 'right',
     },
     questionText: {
@@ -1542,9 +1557,19 @@ const styles = StyleSheet.create({
     },
     questionImage: {
       width: '100%',
-      height: 200,
-      marginBottom: 20,
+      height: undefined,
+      aspectRatio: 1.2,
+      marginBottom: 15,
       borderRadius: 10,
+      marginTop: 0,
+    },
+    questionImageOnly: {
+      width: '100%',
+      height: undefined,
+      aspectRatio: 1,
+      marginBottom: 15,
+      borderRadius: 12,
+      marginTop: 0,
     },
     video: {
     width: '100%',

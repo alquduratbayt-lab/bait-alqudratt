@@ -77,7 +77,10 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
           <h1 className="text-xl font-bold text-gray-800">{title}</h1>
           <div className="flex items-center gap-4">
             <button onClick={() => router.push('/dashboard')} className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">الصفحة الرئيسية</button>
-            <span className="text-blue-600 font-bold text-lg">قدراتي</span>
+            <div className="flex items-center gap-2">
+              <span className="text-blue-600 font-bold text-lg">بيت القدرات</span>
+              <img src="/app-icon.png" alt="بيت القدرات" className="w-10 h-10 rounded-lg" />
+            </div>
           </div>
         </div>
       </header>

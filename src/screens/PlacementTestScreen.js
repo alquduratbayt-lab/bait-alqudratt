@@ -7,6 +7,7 @@ import {
   ScrollView,
   ActivityIndicator,
   SafeAreaView,
+  Image,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Path } from 'react-native-svg';
@@ -195,7 +196,20 @@ export default function PlacementTestScreen({ navigation, route }) {
           <Text style={styles.questionNumber}>
             السؤال {currentQuestionIndex + 1} من {questions.length}
           </Text>
-          <HtmlRenderer html={currentQuestion.question_text} style={styles.questionText} />
+          
+          {/* عرض نص السؤال إذا كان موجوداً */}
+          {currentQuestion.question_text && currentQuestion.question_text.trim() !== '' && (
+            <HtmlRenderer html={currentQuestion.question_text} style={styles.questionText} />
+          )}
+          
+          {/* عرض صورة السؤال إذا كانت موجودة */}
+          {currentQuestion.question_image_url && (
+            <Image 
+              source={{ uri: currentQuestion.question_image_url }} 
+              style={styles.questionImage}
+              resizeMode="contain"
+            />
+          )}
 
           <View style={styles.optionsContainer}>
             {['A', 'B', 'C', 'D'].map((option) => (
@@ -320,6 +334,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'right',
     lineHeight: 28,
+  },
+  questionImage: {
+    width: '100%',
+    height: 200,
+    marginBottom: 20,
+    borderRadius: 10,
   },
   optionsContainer: {
     marginBottom: 20,

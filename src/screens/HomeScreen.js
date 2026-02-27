@@ -628,16 +628,7 @@ export default function HomeScreen({ navigation }) {
           </View>
         )}
 
-        {/* التدريب غير متاح */}
-        <LinearGradient
-          colors={['#4682B4', '#4682B4']}
-          style={styles.trainingCard}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-        >
-          <LockIcon />
-          <Text style={styles.trainingText}>التدريب غير متاح</Text>
-        </LinearGradient>
+{/* تم إخفاء زر التدريب غير متاح */}
       </ScrollView>
 
       {/* زر المدرس AI العائم */}

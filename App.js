@@ -58,6 +58,7 @@ import PlacementTestScreen from './src/screens/PlacementTestScreen';
 import PlacementTestResultsScreen from './src/screens/PlacementTestResultsScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
+import SubjectFinalExamScreen from './src/screens/SubjectFinalExamScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -68,28 +69,40 @@ export default function App() {
   useEffect(() => {
     // طلب إذن الإشعارات وتحديث token فور فتح التطبيق
     const requestNotificationPermissions = async () => {
-      const { registerForPushNotificationsAsync, savePushToken } = require('./src/lib/pushNotifications');
-      const { supabase } = require('./src/lib/supabase');
-      
-      // الحصول على token جديد
-      const token = await registerForPushNotificationsAsync();
-      
-      // إذا كان المستخدم مسجل دخول، حفظ الـ token
-      if (token) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          // البحث عن المستخدم في قاعدة البيانات
-          const { data: userData } = await supabase
-            .from('users')
-            .select('id')
-            .eq('email', user.email)
-            .single();
+      try {
+        const { registerForPushNotificationsAsync, savePushToken } = require('./src/lib/pushNotifications');
+        const { supabase } = require('./src/lib/supabase');
+        
+        // الحصول على token جديد
+        const token = await registerForPushNotificationsAsync();
+        
+        // إذا كان المستخدم مسجل دخول، حفظ الـ token
+        if (token) {
+          const { data: { user }, error } = await supabase.auth.getUser();
           
-          if (userData) {
-            await savePushToken(userData.id, token);
-            console.log('✅ Push token updated on app launch');
+          // تجاهل الخطأ إذا كان الـ refresh token منتهي الصلاحية
+          if (error) {
+            console.log('⚠️ Auth error (will be handled by SplashScreen):', error.message);
+            return;
+          }
+          
+          if (user) {
+            // البحث عن المستخدم في قاعدة البيانات
+            const { data: userData } = await supabase
+              .from('users')
+              .select('id')
+              .eq('email', user.email)
+              .single();
+            
+            if (userData) {
+              await savePushToken(userData.id, token);
+              console.log('✅ Push token updated on app launch');
+            }
           }
         }
+      } catch (error) {
+        // تجاهل أي خطأ هنا - سيتم التعامل معه في SplashScreen
+        console.log('⚠️ Push notification setup skipped:', error.message);
       }
     };
     
@@ -151,6 +164,7 @@ export default function App() {
         <Stack.Screen name="Lessons" component={LessonsScreen} />
         <Stack.Screen name="LessonDetail" component={LessonDetailScreen} />
         <Stack.Screen name="Exam" component={ExamScreen} />
+        <Stack.Screen name="SubjectFinalExam" component={SubjectFinalExamScreen} />
         <Stack.Screen name="Notifications" component={NotificationsScreen} />
         <Stack.Screen name="StudentNotifications" component={StudentNotificationsScreen} />
         <Stack.Screen name="AITeacher" component={AITeacherScreen} />

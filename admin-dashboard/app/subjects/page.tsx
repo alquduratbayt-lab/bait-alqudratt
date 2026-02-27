@@ -12,6 +12,7 @@ interface Subject {
   description?: string;
   passing_percentage: number;
   lessons_count: number;
+  questions_count: number;
   duration: number;
   created_at: string;
 }
@@ -31,13 +32,39 @@ export default function SubjectsPage() {
 
   const fetchSubjects = async () => {
     try {
-      const { data, error } = await supabase
+      // جلب المواد مع حساب عدد الدروس ديناميكياً
+      const { data: subjectsData, error } = await supabase
         .from('subjects')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setSubjects(data || []);
+
+      // حساب عدد الدروس والأسئلة لكل مادة
+      const subjectsWithCounts = await Promise.all(
+        (subjectsData || []).map(async (subject) => {
+          // حساب عدد الدروس
+          const { count: lessonsCount, error: lessonsError } = await supabase
+            .from('lessons')
+            .select('*', { count: 'exact', head: true })
+            .eq('subject_id', subject.id);
+
+          // حساب عدد الأسئلة مباشرة من subject_id
+          const { count: questionsCount } = await supabase
+            .from('questions')
+            .select('*', { count: 'exact', head: true })
+            .eq('subject_id', subject.id);
+
+          return {
+            ...subject,
+            lessons_count: lessonsError ? 0 : (lessonsCount || 0),
+            questions_count: questionsCount,
+            duration: lessonsError ? 0 : Math.round((lessonsCount || 0) * 0.5)
+          };
+        })
+      );
+
+      setSubjects(subjectsWithCounts);
     } catch (error) {
       console.error('Error fetching subjects:', error);
     } finally {
@@ -210,14 +237,31 @@ export default function SubjectsPage() {
                     </div>
                     <span className="text-gray-500">المدة الزمنية</span>
                   </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-1">
+                      <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-gray-600">{subject.questions_count || 0} سؤال</span>
+                    </div>
+                    <span className="text-gray-500">عدد الأسئلة</span>
+                  </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 mb-2">
                   <button 
                     onClick={() => router.push(`/subjects/${subject.id}/lessons`)}
                     className="flex-1 px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl hover:from-indigo-600 hover:to-purple-700 font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all text-sm"
                   >
                     إضافة دروس
                   </button>
+                  <button 
+                    onClick={() => router.push(`/subjects/${subject.id}/final-exam`)}
+                    className="flex-1 px-3 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all text-sm"
+                  >
+                    الامتحان النهائي
+                  </button>
+                </div>
+                <div className="flex gap-2">
                   <button 
                     onClick={() => {
                       setNewSubject({ 
@@ -263,7 +307,7 @@ export default function SubjectsPage() {
                   type="text"
                   value={newSubject.name}
                   onChange={(e) => setNewSubject({...newSubject, name: e.target.value})}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all text-gray-900 font-bold placeholder:text-gray-900 placeholder:font-bold text-right"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all text-gray-900 font-bold placeholder:text-gray-400 text-right"
                   placeholder="مثال: الكمي"
                 />
               </div>
@@ -274,7 +318,7 @@ export default function SubjectsPage() {
                   type="text"
                   value={newSubject.type}
                   onChange={(e) => setNewSubject({...newSubject, type: e.target.value})}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-right font-medium focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-right font-medium text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all"
                   placeholder="مثال: الكمي"
                 />
               </div>
@@ -284,7 +328,7 @@ export default function SubjectsPage() {
                 <textarea
                   value={newSubject.description}
                   onChange={(e) => setNewSubject({...newSubject, description: e.target.value})}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-right placeholder:text-gray-400 text-gray-900 font-bold focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all"
                   placeholder="وصف المنهج..."
                   rows={3}
                 />
@@ -298,7 +342,7 @@ export default function SubjectsPage() {
                   max="100"
                   value={newSubject.passing_percentage}
                   onChange={(e) => setNewSubject({...newSubject, passing_percentage: parseInt(e.target.value) || 80})}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-right font-medium focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-right font-medium text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all"
                   placeholder="80"
                 />
                 <p className="text-xs text-gray-500 mt-1 text-right">النسبة المطلوبة للنجاح في الامتحان النهائي</p>
@@ -314,7 +358,7 @@ export default function SubjectsPage() {
                       setNewSubject({...newSubject, icon_file: e.target.files[0]});
                     }
                   }}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl font-medium focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl font-medium text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
                 />
                 <p className="text-xs text-gray-500 mt-1 text-right">تظهر في الصفحة الرئيسية للتطبيق</p>
               </div>

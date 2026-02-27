@@ -400,10 +400,16 @@ export default function LessonsPage() {
         if (updateError) throw updateError;
         lessonData = data;
 
-        await supabase
+        // حذف الأسئلة القديمة مع التحقق من نجاح العملية
+        const { error: deleteError } = await supabase
           .from('questions')
           .delete()
           .eq('lesson_id', editingLessonId);
+        
+        if (deleteError) {
+          console.error('Error deleting old questions:', deleteError);
+          throw new Error('فشل في حذف الأسئلة القديمة: ' + deleteError.message);
+        }
       } else {
         const { data, error: insertError } = await supabase
           .from('lessons')
@@ -421,8 +427,11 @@ export default function LessonsPage() {
       }
 
       if (questions.length > 0) {
-        const questionsToInsert = await Promise.all(questions.map(async (q) => {
+        const questionsToInsert = await Promise.all(questions.map(async (q: any) => {
           let imageUrl = q.question_image_url || null;
+          
+          // تجاهل الـ id القديم لتجنب التكرار
+          const { id, created_at, ...questionData } = q;
           
           if (q.question_image_file) {
             const fileName = `questions/${Date.now()}_${q.question_image_file.name}`;
@@ -459,7 +468,7 @@ export default function LessonsPage() {
           };
           
           return {
-            question_text: cleanHtml(q.question_text) || 'سؤال',
+            question_text: cleanHtml(q.question_text) || '',
             question_image_url: imageUrl,
             equation_latex: q.equation_latex || null,
             equation_image_url: q.equation_image_url || null,
@@ -482,10 +491,15 @@ export default function LessonsPage() {
 
       if (examQuestions.length > 0) {
         if (editingLessonId) {
-          await supabase
+          const { error: deleteExamError } = await supabase
             .from('exam_questions')
             .delete()
             .eq('lesson_id', editingLessonId);
+          
+          if (deleteExamError) {
+            console.error('Error deleting old exam questions:', deleteExamError);
+            throw new Error('فشل في حذف أسئلة الامتحان القديمة: ' + deleteExamError.message);
+          }
         }
 
         // دالة لتنظيف HTML (الحفاظ على الجداول)
@@ -1008,7 +1022,7 @@ export default function LessonsPage() {
                     <div className="space-y-3">
                       <div>
                         <div className="flex justify-between items-center mb-2">
-                          <label className="block text-sm font-medium text-gray-700 text-right">نص السؤال</label>
+                          <label className="block text-sm font-medium text-gray-700 text-right">نص السؤال (اختياري إذا رفعت صورة)</label>
                           <button
                             type="button"
                             onClick={() => openMathEditor('question', index, 'question_text')}
@@ -1044,7 +1058,7 @@ export default function LessonsPage() {
                       </div>
 
                       <div>
-                        <label className="block text-sm text-gray-600 mb-1 text-right">صورة السؤال (اختياري - للمعادلات المعقدة جداً)</label>
+                        <label className="block text-sm text-gray-600 mb-1 text-right">صورة السؤال (اختياري - يمكن رفع صورة تحتوي السؤال كاملاً)</label>
                         <input type="file" accept="image/*" onChange={(e) => {
                           if (e.target.files && e.target.files[0]) {
                             const file = e.target.files[0];
@@ -1059,7 +1073,7 @@ export default function LessonsPage() {
                             setQuestions(updated);
                           }
                         }} className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm" />
-                        <p className="text-xs text-gray-500 mt-1 text-right">استخدم الصورة فقط للمعادلات المعقدة جداً (الحد الأقصى 5MB)</p>
+                        <p className="text-xs text-gray-500 mt-1 text-right">يمكنك رفع صورة تحتوي على شكل هندسي أو السؤال كاملاً (الحد الأقصى 5MB)</p>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">

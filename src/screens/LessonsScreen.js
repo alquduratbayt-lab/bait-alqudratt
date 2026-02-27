@@ -75,6 +75,8 @@ export default function LessonsScreen({ navigation, route }) {
   const [unlockAllLessons, setUnlockAllLessons] = useState(false);
   const [showCompletedModal, setShowCompletedModal] = useState(false);
   const [completedLessonData, setCompletedLessonData] = useState(null);
+  const [finalExamAvailable, setFinalExamAvailable] = useState(false);
+  const [allLessonsCompleted, setAllLessonsCompleted] = useState(false);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -96,6 +98,23 @@ export default function LessonsScreen({ navigation, route }) {
     const subscription = await fetchUserSubscription();
     await fetchLessons(subscription);
     await fetchStudentProgress();
+    await checkFinalExamAvailability();
+  };
+
+  const checkFinalExamAvailability = async () => {
+    try {
+      // التحقق من وجود امتحان نهائي مفعّل للمادة
+      const { data: examData } = await supabase
+        .from('subject_final_exams')
+        .select('id, is_active')
+        .eq('subject_id', subjectId)
+        .eq('is_active', true)
+        .single();
+
+      setFinalExamAvailable(!!examData);
+    } catch (error) {
+      setFinalExamAvailable(false);
+    }
   };
 
   const fetchUserSubscription = async () => {
@@ -193,6 +212,15 @@ export default function LessonsScreen({ navigation, route }) {
 
       if (error) throw error;
       setStudentProgress(data || []);
+      
+      // التحقق من إكمال جميع الدروس
+      if (lessons.length > 0 && data) {
+        const completedLessons = data.filter(p => p.passed === true);
+        const allCompleted = lessons.every(lesson => 
+          completedLessons.some(p => p.lesson_id === lesson.id)
+        );
+        setAllLessonsCompleted(allCompleted);
+      }
     } catch (error) {
       console.error('Error fetching progress:', error);
     }
@@ -358,12 +386,61 @@ export default function LessonsScreen({ navigation, route }) {
     }
 
     return (
-      <ScrollView style={styles.lessonsList} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.lessonsList} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
         {lessons.map((lesson, index) => (
           <View key={lesson.id || index}>
             {renderLesson({ item: lesson, index })}
           </View>
         ))}
+        
+        {/* زر الامتحان النهائي */}
+        {finalExamAvailable && (
+          <TouchableOpacity
+            style={[
+              styles.finalExamButton,
+              !(allLessonsCompleted || unlockAllLessons) && styles.finalExamButtonLocked
+            ]}
+            onPress={() => {
+              if (allLessonsCompleted || unlockAllLessons) {
+                navigation.navigate('SubjectFinalExam', {
+                  subjectId: subjectId,
+                  subjectName: title,
+                  passingPercentage: passingPercentage
+                });
+              } else {
+                alert('يجب إكمال جميع الدروس أولاً للدخول للامتحان النهائي');
+              }
+            }}
+          >
+            <View style={styles.finalExamContent}>
+              <View style={styles.finalExamIcon}>
+                <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
+                  <Path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" stroke={(allLessonsCompleted || unlockAllLessons) ? "#fff" : "#999"} strokeWidth={2} />
+                </Svg>
+              </View>
+              <View style={styles.finalExamTextContainer}>
+                <Text style={[styles.finalExamTitle, !(allLessonsCompleted || unlockAllLessons) && styles.finalExamTitleLocked]}>
+                  الامتحان النهائي
+                </Text>
+                <Text style={[styles.finalExamSubtitle, !(allLessonsCompleted || unlockAllLessons) && styles.finalExamSubtitleLocked]}>
+                  {(allLessonsCompleted || unlockAllLessons) ? 'اضغط للبدء في الامتحان' : 'أكمل جميع الدروس أولاً'}
+                </Text>
+              </View>
+              {!(allLessonsCompleted || unlockAllLessons) && (
+                <View style={styles.finalExamLockIcon}>
+                  <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+                    <Rect x={3} y={11} width={18} height={11} rx={2} stroke="#999" strokeWidth={2} />
+                    <Path d="M7 11V7a5 5 0 0110 0v4" stroke="#999" strokeWidth={2} strokeLinecap="round" />
+                  </Svg>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     );
   };
@@ -803,5 +880,60 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Final Exam Button Styles
+  finalExamButton: {
+    backgroundColor: '#6366f1',
+    marginHorizontal: 16,
+    marginTop: 20,
+    marginBottom: 10,
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  finalExamButtonLocked: {
+    backgroundColor: '#e5e7eb',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+  },
+  finalExamContent: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+  },
+  finalExamIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
+  },
+  finalExamTextContainer: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  finalExamTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  finalExamTitleLocked: {
+    color: '#666',
+  },
+  finalExamSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  finalExamSubtitleLocked: {
+    color: '#999',
+  },
+  finalExamLockIcon: {
+    marginRight: 8,
   },
 });

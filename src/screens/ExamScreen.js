@@ -455,14 +455,27 @@ export default function ExamScreen({ navigation, route }) {
           <View style={styles.questionCard}>
             <Text style={styles.questionNumber}>السؤال {currentQuestionIndex + 1} من {questions.length}</Text>
             
-            {currentQuestion.question_image_url ? (
+            {/* عرض صورة السؤال أولاً إذا لم يكن هناك نص */}
+            {currentQuestion.question_image_url && (!currentQuestion.question_text || currentQuestion.question_text.trim() === '') && (
+              <Image 
+                source={{ uri: currentQuestion.question_image_url }} 
+                style={styles.questionImageOnly}
+                resizeMode="contain"
+              />
+            )}
+            
+            {/* عرض نص السؤال إذا كان موجوداً */}
+            {currentQuestion.question_text && currentQuestion.question_text.trim() !== '' && (
+              <HtmlRenderer html={currentQuestion.question_text} style={styles.questionText} />
+            )}
+            
+            {/* عرض صورة السؤال بعد النص إذا كان هناك نص */}
+            {currentQuestion.question_image_url && currentQuestion.question_text && currentQuestion.question_text.trim() !== '' && (
               <Image 
                 source={{ uri: currentQuestion.question_image_url }} 
                 style={styles.questionImage}
                 resizeMode="contain"
               />
-            ) : (
-              <HtmlRenderer html={currentQuestion.question_text} style={styles.questionText} />
             )}
 
             <View style={styles.optionsContainer}>
@@ -586,9 +599,18 @@ const styles = StyleSheet.create({
   questionImage: {
     width: '100%',
     height: undefined,
-    aspectRatio: 1.5,
-    marginBottom: 20,
+    aspectRatio: 1.2,
+    marginBottom: 15,
     borderRadius: 12,
+    marginTop: 0,
+  },
+  questionImageOnly: {
+    width: '100%',
+    height: undefined,
+    aspectRatio: 1,
+    marginBottom: 15,
+    borderRadius: 12,
+    marginTop: 0,
   },
   optionsContainer: {
     marginBottom: 20,

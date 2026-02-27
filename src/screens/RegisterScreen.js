@@ -68,7 +68,15 @@ export default function RegisterScreen({ navigation }) {
   const handleRegister = async () => {
     // التحقق من البيانات
     if (!phone || !name || !password) {
-      Alert.alert('خطأ', 'الرجاء ملء جميع الحقول المطلوبة');
+      let missingFields = [];
+      if (!phone) missingFields.push('رقم الهاتف');
+      if (!name) missingFields.push('الاسم');
+      if (!password) missingFields.push('كلمة المرور');
+      
+      Alert.alert(
+        'حقول مطلوبة',
+        `الرجاء ملء الحقول التالية:\n• ${missingFields.join('\n• ')}\n\nملاحظة: رقم هاتف ولي الأمر اختياري`
+      );
       return;
     }
 
@@ -204,7 +212,7 @@ export default function RegisterScreen({ navigation }) {
 
         {/* حقل رقم هاتف ولي الأمر */}
         <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>رقم هاتف ولي الامر</Text>
+          <Text style={styles.inputLabel}>رقم هاتف ولي الامر <Text style={styles.optionalLabel}>(اختياري)</Text></Text>
           <View style={styles.phoneInputWrapper}>
             <Text style={styles.countryCode}>+966</Text>
             <TextInput
@@ -427,5 +435,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#2196F3',
     fontWeight: '600',
+  },
+  optionalLabel: {
+    fontSize: 12,
+    color: '#999',
+    fontWeight: '400',
   },
 });
