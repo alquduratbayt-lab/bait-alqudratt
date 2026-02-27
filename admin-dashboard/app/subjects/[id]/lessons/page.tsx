@@ -313,31 +313,25 @@ export default function LessonsPage() {
     if (!currentMathField || !tempLatex) return;
 
     try {
-      setLoading(true);
-      
-      // تحويل LaTeX إلى صورة ورفعها
-      const imageUrl = await latexToImage(tempLatex);
-      
       const { type, index, field } = currentMathField;
-      const equationTag = `[EQUATION:${imageUrl}]`;
+      // حفظ المعادلة بصيغة LaTeX محاطة بـ $$ ليتعرف عليها التطبيق
+      const latexTag = `$$${tempLatex}$$`;
 
       if (type === 'question') {
         const updatedQuestions = [...questions];
         const currentText = (updatedQuestions[index] as any)[field] || '';
         // إضافة المعادلة إلى النص الموجود
-        (updatedQuestions[index] as any)[field] = currentText ? `${currentText} ${equationTag}` : equationTag;
+        (updatedQuestions[index] as any)[field] = currentText ? `${currentText} ${latexTag}` : latexTag;
         // حفظ LaTeX أيضاً
         (updatedQuestions[index] as any).equation_latex = tempLatex;
-        (updatedQuestions[index] as any).equation_image_url = imageUrl;
         setQuestions(updatedQuestions);
       } else {
         const updatedExamQuestions = [...examQuestions];
         const currentText = (updatedExamQuestions[index] as any)[field] || '';
         // إضافة المعادلة إلى النص الموجود
-        (updatedExamQuestions[index] as any)[field] = currentText ? `${currentText} ${equationTag}` : equationTag;
+        (updatedExamQuestions[index] as any)[field] = currentText ? `${currentText} ${latexTag}` : latexTag;
         // حفظ LaTeX أيضاً
         (updatedExamQuestions[index] as any).equation_latex = tempLatex;
-        (updatedExamQuestions[index] as any).equation_image_url = imageUrl;
         setExamQuestions(updatedExamQuestions);
       }
 
@@ -347,8 +341,6 @@ export default function LessonsPage() {
     } catch (error) {
       console.error('Error inserting equation:', error);
       alert('حدث خطأ أثناء إضافة المعادلة. الرجاء المحاولة مرة أخرى.');
-    } finally {
-      setLoading(false);
     }
   };
 
