@@ -28,11 +28,16 @@ export default function HtmlRenderer({ html, style }) {
     // استبدال [EQUATION:url] بـ <img> tags داخل HTML
     cleanHtml = cleanHtml.replace(/\[EQUATION:(.*?)\]/g, '<img src="$1" style="width: 80px; height: 30px;" />');
     
+    // إزالة width الثابت من الجدول وأي أنماط عرض ثابتة
+    cleanHtml = cleanHtml.replace(/width:\s*\d+px/gi, 'width: 100%');
+    cleanHtml = cleanHtml.replace(/width:\s*\d+%/gi, 'width: 100%');
+    cleanHtml = cleanHtml.replace(/<table[^>]*>/gi, '<table style="width:100%;max-width:100%;table-layout:fixed;">');
+    
     const tableHtml = `
       <!DOCTYPE html>
       <html>
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
         <script>
           window.MathJax = {
             tex: { inlineMath: [['$', '$']], displayMath: [['$$', '$$']] },
@@ -42,7 +47,7 @@ export default function HtmlRenderer({ html, style }) {
                   setTimeout(() => {
                     const height = document.body.scrollHeight;
                     window.ReactNativeWebView?.postMessage(JSON.stringify({ height }));
-                  }, 100);
+                  }, 300);
                 });
               }
             }
@@ -51,11 +56,34 @@ export default function HtmlRenderer({ html, style }) {
         <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: Arial, sans-serif; font-size: 16px; color: #1e3a5f; direction: rtl; padding: 5px; }
-          table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-          td, th { border: 1px solid #333; padding: 8px; text-align: center; min-height: 40px; }
+          html, body { width: 100%; overflow-x: hidden; }
+          body { 
+            font-family: Arial, sans-serif; 
+            font-size: 14px; 
+            color: #1e3a5f; 
+            direction: rtl; 
+            padding: 5px;
+            display: flex;
+            justify-content: center;
+          }
+          table { 
+            width: 100% !important; 
+            max-width: 100% !important;
+            border-collapse: collapse; 
+            margin: 5px auto;
+            table-layout: fixed;
+          }
+          td, th { 
+            border: 1px solid #333; 
+            padding: 6px; 
+            text-align: center; 
+            min-height: 35px;
+            word-wrap: break-word;
+            overflow: hidden;
+          }
           th { background: #f0f0f0; font-weight: bold; }
-          mjx-container { margin: 0 !important; }
+          mjx-container { margin: 0 !important; font-size: 14px !important; }
+          span { font-family: Arial, sans-serif !important; }
         </style>
       </head>
       <body>${cleanHtml}</body>
@@ -65,10 +93,10 @@ export default function HtmlRenderer({ html, style }) {
     const [webViewHeight, setWebViewHeight] = React.useState(150);
     
     return (
-      <View style={{ width: '100%', minHeight: webViewHeight }}>
+      <View style={{ width: '100%', minHeight: webViewHeight, maxWidth: '100%', overflow: 'hidden' }}>
         <WebView
           source={{ html: tableHtml }}
-          style={{ height: webViewHeight, backgroundColor: 'transparent' }}
+          style={{ height: webViewHeight, width: '100%', backgroundColor: 'transparent' }}
           scrollEnabled={false}
           onMessage={(event) => {
             try {
@@ -78,6 +106,7 @@ export default function HtmlRenderer({ html, style }) {
           }}
           javaScriptEnabled={true}
           originWhitelist={['*']}
+          scalesPageToFit={true}
         />
       </View>
     );

@@ -977,16 +977,19 @@ export default function LessonDetailScreen({ navigation, route }) {
               <Text style={styles.questionsTitle}>إجابات خطأ:</Text>
               {questionResults.filter(r => !r.isCorrect).map((result, index) => (
                 <View key={index} style={styles.questionResultCard}>
-                  <View style={styles.questionResultHeader}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 5 }}>
                     <TouchableOpacity
                       onPress={() => goToQuestionTime(result.question.id, result.question.show_at_time)}
-                      style={styles.bookButton}
+                      style={{ flexDirection: 'row', alignItems: 'center', padding: 5, backgroundColor: '#e3f2fd', borderRadius: 8 }}
                     >
-                      <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+                      <Text style={{ color: '#2196F3', fontSize: 12, marginRight: 5 }}>العودة للسؤال</Text>
+                      <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
                         <Path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke="#2196F3" strokeWidth={2} />
                         <Path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke="#2196F3" strokeWidth={2} fill="#e3f2fd" />
                       </Svg>
                     </TouchableOpacity>
+                  </View>
+                  <View style={{ width: '100%' }}>
                     {result.question.question_text && result.question.question_text.trim() !== '' && (
                       <HtmlRenderer html={result.question.question_text} style={styles.questionResultText} />
                     )}
@@ -1220,7 +1223,7 @@ export default function LessonDetailScreen({ navigation, route }) {
                       ]}>
                         {arabicLetters[index]}.
                       </Text>
-                      <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                      <View style={{ flex: 1, justifyContent: 'center' }}>
                         <HtmlRenderer 
                           html={currentQuestion[`option_${option.toLowerCase()}`]}
                           style={[
@@ -1873,6 +1876,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e0e0e0',
+    overflow: 'hidden',
   },
   questionResultHeader: {
     flexDirection: 'row',

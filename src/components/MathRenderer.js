@@ -115,11 +115,13 @@ export default function MathRenderer({ latex, style, textStyle }) {
 
 const styles = StyleSheet.create({
   container: {
-    width: '100%',
+    flex: 1,
+    minHeight: 40,
     overflow: 'hidden',
   },
   webview: {
     backgroundColor: 'transparent',
-    width: '100%',
+    flex: 1,
+    minHeight: 40,
   },
 });

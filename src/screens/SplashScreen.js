@@ -1,15 +1,41 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Dimensions, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { checkForRequiredUpdate } from '../services/versionService';
+import ForceUpdateScreen from './ForceUpdateScreen';
 
 const { width, height } = Dimensions.get('window');
 
 export default function SplashScreen({ navigation }) {
+  const [updateRequired, setUpdateRequired] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState({});
+
   useEffect(() => {
-    checkSession();
+    checkVersionAndSession();
   }, [navigation]);
+
+  const checkVersionAndSession = async () => {
+    try {
+      // فحص الإصدار أولاً
+      const versionCheck = await checkForRequiredUpdate();
+      
+      if (versionCheck.updateRequired) {
+        console.log('📱 Update required! Current:', versionCheck.currentVersion, 'Min:', versionCheck.minVersion);
+        setUpdateInfo(versionCheck);
+        setUpdateRequired(true);
+        return;
+      }
+      
+      // إذا الإصدار محدث، تابع الفحص العادي
+      await checkSession();
+    } catch (error) {
+      console.error('Error in version check:', error);
+      // في حالة الخطأ، تابع بدون فحص الإصدار
+      await checkSession();
+    }
+  };
 
   const checkSession = async () => {
     try {
@@ -107,6 +133,17 @@ export default function SplashScreen({ navigation }) {
       }, 2000);
     }
   };
+
+  // إذا كان التحديث مطلوباً، اعرض شاشة التحديث الإجباري
+  if (updateRequired) {
+    return (
+      <ForceUpdateScreen 
+        updateMessage={updateInfo.updateMessage}
+        appStoreUrl={updateInfo.appStoreUrl}
+        playStoreUrl={updateInfo.playStoreUrl}
+      />
+    );
+  }
 
   return (
     <LinearGradient
