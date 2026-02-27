@@ -1,5 +1,6 @@
 import React from 'react';
 import { useWindowDimensions, Text, View, Image } from 'react-native';
+import { WebView } from 'react-native-webview';
 import RenderHtml from 'react-native-render-html';
 import MathFraction from './MathFraction';
 import MathSquareRoot from './MathSquareRoot';
@@ -22,79 +23,63 @@ export default function HtmlRenderer({ html, style }) {
   // تنظيف المسافات
   cleanHtml = cleanHtml.trim();
   
-  // إذا كان يحتوي على جدول، اعرضه مباشرة بدون معالجة إضافية
+  // إذا كان يحتوي على جدول، اعرضه في WebView مع MathJax
   if (cleanHtml.includes('<table')) {
     // استبدال [EQUATION:url] بـ <img> tags داخل HTML
     cleanHtml = cleanHtml.replace(/\[EQUATION:(.*?)\]/g, '<img src="$1" style="width: 80px; height: 30px;" />');
     
-    const source = { html: cleanHtml };
-    const tagsStyles = {
-      body: {
-        fontFamily: 'Arial',
-        fontSize: 16,
-        color: '#1e3a5f',
-        textAlign: 'right',
-        direction: 'rtl',
-      },
-      table: {
-        borderWidth: 1,
-        borderColor: '#333',
-        borderStyle: 'solid',
-        marginVertical: 10,
-        width: '100%',
-      },
-      tr: {
-        flexDirection: 'row',
-        borderBottomWidth: 1,
-        borderBottomColor: '#333',
-      },
-      td: {
-        flex: 1,
-        borderWidth: 1,
-        borderColor: '#333',
-        borderStyle: 'solid',
-        padding: 8,
-        textAlign: 'center',
-        fontSize: 14,
-        color: '#333',
-        minHeight: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-      },
-      th: {
-        flex: 1,
-        borderWidth: 1,
-        borderColor: '#333',
-        borderStyle: 'solid',
-        padding: 8,
-        textAlign: 'center',
-        fontSize: 14,
-        fontWeight: 'bold',
-        backgroundColor: '#f0f0f0',
-        color: '#333',
-        minHeight: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-      },
-      img: {
-        width: 80,
-        height: 30,
-        resizeMode: 'contain',
-      },
-    };
+    const tableHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script>
+          window.MathJax = {
+            tex: { inlineMath: [['$', '$']], displayMath: [['$$', '$$']] },
+            startup: {
+              pageReady: () => {
+                return MathJax.startup.defaultPageReady().then(() => {
+                  setTimeout(() => {
+                    const height = document.body.scrollHeight;
+                    window.ReactNativeWebView?.postMessage(JSON.stringify({ height }));
+                  }, 100);
+                });
+              }
+            }
+          };
+        </script>
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: Arial, sans-serif; font-size: 16px; color: #1e3a5f; direction: rtl; padding: 5px; }
+          table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+          td, th { border: 1px solid #333; padding: 8px; text-align: center; min-height: 40px; }
+          th { background: #f0f0f0; font-weight: bold; }
+          mjx-container { margin: 0 !important; }
+        </style>
+      </head>
+      <body>${cleanHtml}</body>
+      </html>
+    `;
+    
+    const [webViewHeight, setWebViewHeight] = React.useState(150);
     
     return (
-      <RenderHtml
-        contentWidth={width - 40}
-        source={source}
-        tagsStyles={tagsStyles}
-        enableExperimentalMarginCollapsing={true}
-        renderersProps={{
-          table: {
-            computeContainerHeight: () => undefined,
-          },
-        }}
-      />
+      <View style={{ width: '100%', minHeight: webViewHeight }}>
+        <WebView
+          source={{ html: tableHtml }}
+          style={{ height: webViewHeight, backgroundColor: 'transparent' }}
+          scrollEnabled={false}
+          onMessage={(event) => {
+            try {
+              const data = JSON.parse(event.nativeEvent.data);
+              if (data.height && data.height > 50) setWebViewHeight(data.height + 20);
+            } catch (e) {}
+          }}
+          javaScriptEnabled={true}
+          originWhitelist={['*']}
+        />
+      </View>
     );
   }
   
