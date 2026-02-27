@@ -9,6 +9,9 @@ import MathRenderer from './MathRenderer';
 export default function HtmlRenderer({ html, style }) {
   const { width } = useWindowDimensions();
 
+  // DEBUG
+  console.log('🔍 HtmlRenderer input:', html);
+
   // تنظيف HTML من Word fragments والتعليقات
   let cleanHtml = html || '';
   
@@ -149,8 +152,66 @@ export default function HtmlRenderer({ html, style }) {
     );
   }
   
-  // اكتشاف LaTeX محاط بـ $$ أو \[ \] (للتوافق مع الأسئلة القديمة)
-  const latexPattern = /\$\$(.*?)\$\$|\\\[(.*?)\\\]/s;
+  // اكتشاف LaTeX - إما محاط بـ $$ أو يحتوي على أوامر LaTeX
+  const hasDoubleDollar = cleanHtml.includes('$$');
+  const hasLatexCommands = /\\(frac|sqrt|sum|int|lim|pi|infty|geq|leq|neq|times|div|pm|Delta|alpha|beta|gamma|cdot|left|right)/i.test(cleanHtml);
+  
+  console.log('🔍 hasDoubleDollar:', hasDoubleDollar, 'hasLatexCommands:', hasLatexCommands, 'cleanHtml:', cleanHtml);
+  
+  // إذا كان يحتوي على أوامر LaTeX بدون $$ - أضفها تلقائياً
+  if (!hasDoubleDollar && hasLatexCommands && !cleanHtml.includes('<')) {
+    console.log('✅ Found LaTeX commands without $$, rendering as math');
+    return <MathRenderer latex={cleanHtml} style={style} />;
+  }
+  
+  if (hasDoubleDollar) {
+    console.log('✅ Found $$ in text, rendering MathRenderer');
+    const parts = [];
+    let key = 0;
+    const regex = /\$\$([\s\S]*?)\$\$/g;
+    let lastIndex = 0;
+    let match;
+    
+    while ((match = regex.exec(cleanHtml)) !== null) {
+      if (match.index > lastIndex) {
+        const textBefore = cleanHtml.substring(lastIndex, match.index).trim();
+        if (textBefore) {
+          parts.push(
+            <Text key={`text-${key++}`} style={style}>
+              {textBefore}
+            </Text>
+          );
+        }
+      }
+      
+      const latex = match[1];
+      parts.push(
+        <MathRenderer key={`math-${key++}`} latex={latex} style={{ marginHorizontal: 4 }} />
+      );
+      
+      lastIndex = regex.lastIndex;
+    }
+    
+    if (lastIndex < cleanHtml.length) {
+      const textAfter = cleanHtml.substring(lastIndex).trim();
+      if (textAfter) {
+        parts.push(
+          <Text key={`text-${key++}`} style={style}>
+            {textAfter}
+          </Text>
+        );
+      }
+    }
+    
+    return (
+      <View style={{ flexDirection: 'row-reverse', flexWrap: 'wrap', alignItems: 'center' }}>
+        {parts}
+      </View>
+    );
+  }
+  
+  // اكتشاف LaTeX محاط بـ \[ \] (للتوافق مع الأسئلة القديمة)
+  const latexPattern = /\\\[(.*?)\\\]/s;
   const latexMatch = cleanHtml.match(latexPattern);
   
   if (latexMatch) {
