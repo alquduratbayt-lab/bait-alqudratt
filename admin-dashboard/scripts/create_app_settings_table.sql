@@ -8,12 +8,12 @@ ON CONFLICT (setting_key) DO NOTHING;
 
 -- إدراج رابط App Store
 INSERT INTO app_settings (setting_key, setting_value, setting_type, category, label, description) 
-VALUES ('app_store_url', 'https://apps.apple.com/app/your-app-id', 'text', 'app_version', 'رابط App Store', 'رابط التطبيق في متجر Apple')
+VALUES ('app_store_url', 'https://apps.apple.com/sa/app/%D8%A8%D9%8A%D8%AA-%D8%A7%D9%84%D9%82%D8%AF%D8%B1%D8%A7%D8%AA/id6757343747?l=ar', 'text', 'app_version', 'رابط App Store', 'رابط التطبيق في متجر Apple')
 ON CONFLICT (setting_key) DO NOTHING;
 
 -- إدراج رابط Play Store
 INSERT INTO app_settings (setting_key, setting_value, setting_type, category, label, description) 
-VALUES ('play_store_url', 'https://play.google.com/store/apps/details?id=your.app.id', 'text', 'app_version', 'رابط Play Store', 'رابط التطبيق في متجر Google')
+VALUES ('play_store_url', 'https://play.google.com/store/apps/details?id=com.baitalqudrat.app', 'text', 'app_version', 'رابط Play Store', 'رابط التطبيق في متجر Google')
 ON CONFLICT (setting_key) DO NOTHING;
 
 -- إدراج رسالة التحديث

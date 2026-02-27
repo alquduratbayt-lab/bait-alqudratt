@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase } from '../lib/supabase';
 import Constants from 'expo-constants';
 
 // الحصول على إصدار التطبيق الحالي

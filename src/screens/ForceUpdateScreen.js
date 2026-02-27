@@ -1,6 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Linking, Platform, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, TouchableOpacity, Linking, Platform, Image, Dimensions } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width, height } = Dimensions.get('window');
 
 export default function ForceUpdateScreen({ updateMessage, appStoreUrl, playStoreUrl }) {
   const handleUpdate = () => {
@@ -13,13 +15,24 @@ export default function ForceUpdateScreen({ updateMessage, appStoreUrl, playStor
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <LinearGradient
+      colors={['#e8f4f8', '#fef3e2', '#e8f4f8']}
+      style={styles.container}
+    >
       <View style={styles.content}>
-        <View style={styles.iconContainer}>
-          <Text style={styles.icon}>📲</Text>
+        {/* الشعار */}
+        <View style={styles.logoContainer}>
+          <Image 
+            source={require('../../assets/app-icon.png')} 
+            style={styles.logo}
+            resizeMode="contain"
+          />
         </View>
         
-        <Text style={styles.title}>تحديث مطلوب</Text>
+        {/* اسم التطبيق */}
+        <Text style={styles.title}>بيت القدرات</Text>
+        
+        <Text style={styles.updateTitle}>تحديث مطلوب</Text>
         
         <Text style={styles.message}>
           {updateMessage || 'يتوفر إصدار جديد من التطبيق. يرجى التحديث للاستمرار في استخدام التطبيق.'}
@@ -33,37 +46,52 @@ export default function ForceUpdateScreen({ updateMessage, appStoreUrl, playStor
           يجب تحديث التطبيق للحصول على أحدث الميزات وإصلاحات الأمان
         </Text>
       </View>
-    </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   content: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 30,
   },
-  iconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#e3f2fd',
+  logoContainer: {
+    width: 150,
+    height: 150,
+    backgroundColor: '#ffffff',
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 30,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 8,
+    marginBottom: 20,
   },
-  icon: {
-    fontSize: 60,
+  logo: {
+    width: 120,
+    height: 120,
   },
   title: {
-    fontSize: 28,
+    fontSize: 36,
     fontWeight: 'bold',
-    color: '#1e3a5f',
+    color: '#1a5f7a',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  updateTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#e74c3c',
     marginBottom: 15,
     textAlign: 'center',
   },
@@ -72,14 +100,14 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     lineHeight: 24,
-    marginBottom: 40,
+    marginBottom: 30,
   },
   updateButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#1a5f7a',
     paddingVertical: 15,
     paddingHorizontal: 60,
     borderRadius: 30,
-    shadowColor: '#2196F3',
+    shadowColor: '#1a5f7a',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
