@@ -535,7 +535,7 @@ export default function FinalExamPage() {
                             </span>
                             <span className="text-xs text-gray-500">📚 {q.lesson_title}</span>
                           </div>
-                          <p className="text-gray-800 font-medium">{q.question_text || '(سؤال بالصورة)'}</p>
+                          <p className="text-gray-800 font-medium" dangerouslySetInnerHTML={{ __html: q.question_text || '(سؤال بالصورة)' }} />
                           {q.question_image_url && (
                             <img src={q.question_image_url} alt="" className="mt-2 max-h-16 rounded" />
                           )}
