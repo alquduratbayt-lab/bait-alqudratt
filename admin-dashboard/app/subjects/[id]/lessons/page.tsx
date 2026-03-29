@@ -559,16 +559,32 @@ export default function LessonsPage() {
           return clean;
         };
 
-        const examQuestionsToInsert = examQuestions.map((q, index) => ({
-          lesson_id: lessonData.id,
-          question_text: cleanHtml(q.question_text),
-          equation_latex: q.equation_latex || null,
-          equation_image_url: q.equation_image_url || null,
-          option_a: cleanHtml(q.option_a),
-          option_b: cleanHtml(q.option_b),
-          option_c: cleanHtml(q.option_c),
-          option_d: cleanHtml(q.option_d),
-          correct_answer: q.correct_answer,
+        const examQuestionsToInsert = await Promise.all(examQuestions.map(async (q: any) => {
+          let imageUrl = q.question_image_url || null;
+
+          if (q.question_image_file) {
+            const fileName = `exam-questions/${Date.now()}_${q.question_image_file.name}`;
+            const { error: uploadError } = await supabase.storage
+              .from('videos')
+              .upload(fileName, q.question_image_file);
+            if (!uploadError) {
+              const { data: urlData } = supabase.storage.from('videos').getPublicUrl(fileName);
+              imageUrl = urlData.publicUrl;
+            }
+          }
+
+          return {
+            lesson_id: lessonData.id,
+            question_text: cleanHtml(q.question_text),
+            question_image_url: imageUrl,
+            equation_latex: q.equation_latex || null,
+            equation_image_url: q.equation_image_url || null,
+            option_a: cleanHtml(q.option_a),
+            option_b: cleanHtml(q.option_b),
+            option_c: cleanHtml(q.option_c),
+            option_d: cleanHtml(q.option_d),
+            correct_answer: q.correct_answer,
+          };
         }));
 
         const { error: examQuestionsError } = await supabase
@@ -1113,6 +1129,19 @@ export default function LessonsPage() {
                             setQuestions(updated);
                           }
                         }} className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm" />
+                        {question.question_image_file && (
+                          <div className="mt-2 relative inline-block">
+                            <img src={URL.createObjectURL(question.question_image_file)} alt="معاينة" className="max-h-32 rounded-lg border" />
+                            <button type="button" onClick={() => { const updated = [...questions]; updated[index] = { ...updated[index], question_image_file: undefined }; setQuestions(updated); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center hover:bg-red-600">✕</button>
+                          </div>
+                        )}
+                        {question.question_image_url && !question.question_image_file && (
+                          <div className="mt-2 relative inline-block">
+                            <img src={question.question_image_url} alt="صورة السؤال الحالية" className="max-h-32 rounded-lg border" />
+                            <button type="button" onClick={() => { const updated = [...questions]; updated[index] = { ...updated[index], question_image_url: '' }; setQuestions(updated); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center hover:bg-red-600">✕</button>
+                            <p className="text-xs text-green-600 mt-1">✓ صورة محفوظة مسبقاً</p>
+                          </div>
+                        )}
                         <p className="text-xs text-gray-500 mt-1 text-right">يمكنك رفع صورة تحتوي على شكل هندسي أو السؤال كاملاً (الحد الأقصى 5MB)</p>
                       </div>
 
@@ -1264,6 +1293,37 @@ export default function LessonsPage() {
                             </div>
                           </div>
                         )}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1 text-right">صورة السؤال (اختياري - يمكن رفع صورة تحتوي السؤال كاملاً)</label>
+                        <input type="file" accept="image/*" onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            const file = e.target.files[0];
+                            const maxSize = 5 * 1024 * 1024;
+                            if (file.size > maxSize) {
+                              alert('حجم الصورة كبير جداً! الحد الأقصى 5MB');
+                              e.target.value = '';
+                              return;
+                            }
+                            const updated = [...examQuestions];
+                            updated[index] = { ...updated[index], question_image_file: file };
+                            setExamQuestions(updated);
+                          }
+                        }} className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm" />
+                        {(question as any).question_image_file && (
+                          <div className="mt-2 relative inline-block">
+                            <img src={URL.createObjectURL((question as any).question_image_file)} alt="معاينة" className="max-h-32 rounded-lg border" />
+                            <button type="button" onClick={() => { const updated = [...examQuestions]; updated[index] = { ...updated[index], question_image_file: undefined }; setExamQuestions(updated); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center hover:bg-red-600">✕</button>
+                          </div>
+                        )}
+                        {question.question_image_url && !(question as any).question_image_file && (
+                          <div className="mt-2 relative inline-block">
+                            <img src={question.question_image_url} alt="صورة السؤال" className="max-h-32 rounded-lg border" />
+                            <button type="button" onClick={() => updateExamQuestion(index, 'question_image_url', '')} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center hover:bg-red-600">✕</button>
+                          </div>
+                        )}
+                        <p className="text-xs text-gray-500 mt-1 text-right">يمكنك رفع صورة تحتوي على شكل هندسي أو السؤال كاملاً (الحد الأقصى 5MB)</p>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
