@@ -21,7 +21,6 @@ serve(async (req) => {
       )
     }
 
-    // تنظيف رقم الهاتف
     let cleanPhone = phone.replace(/\D/g, '')
     if (cleanPhone.startsWith('0')) {
       cleanPhone = '966' + cleanPhone.substring(1)
@@ -31,7 +30,6 @@ serve(async (req) => {
 
     console.log('Verifying OTP for:', cleanPhone)
 
-    // إنشاء Supabase Admin Client
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -43,7 +41,6 @@ serve(async (req) => {
       }
     )
 
-    // البحث عن OTP في قاعدة البيانات
     const { data: otpData, error: otpError } = await supabaseAdmin
       .from('otp_codes')
       .select('*')
@@ -57,35 +54,35 @@ serve(async (req) => {
 
     if (otpError || !otpData) {
       console.error('OTP not found or expired:', otpError)
-      
-      // تحديث عدد المحاولات الفاشلة
+
+      // زيادة عدد المحاولات الفاشلة على آخر OTP غير محقق
       await supabaseAdmin
         .from('otp_codes')
-        .update({ attempts: supabaseAdmin.rpc('increment', { row_id: otpData?.id }) })
+        .update({ attempts: (otpData?.attempts ?? 0) + 1 })
         .eq('phone', cleanPhone)
         .eq('verified', false)
+        .order('created_at', { ascending: false })
+        .limit(1)
 
       return new Response(
         JSON.stringify({ 
           success: false,
-          error: 'رمز التحقق غير صحيح أو منتهي الصلاحية'
+          message: 'رمز التحقق غير صحيح أو منتهي الصلاحية'
         }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // التحقق من عدد المحاولات
     if (otpData.attempts >= 5) {
       return new Response(
         JSON.stringify({ 
           success: false,
-          error: 'تم تجاوز الحد الأقصى للمحاولات. يرجى طلب رمز جديد'
+          message: 'تم تجاوز الحد الأقصى للمحاولات. يرجى طلب رمز جديد'
         }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // تحديث حالة OTP إلى "تم التحقق"
     const { error: updateError } = await supabaseAdmin
       .from('otp_codes')
       .update({ verified: true })

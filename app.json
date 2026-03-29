@@ -2,7 +2,7 @@
   "expo": {
     "name": "بيت القدرات",
     "slug": "bait-alqudrat",
-    "version": "1.0.14",
+    "version": "1.0.15",
     "orientation": "portrait",
     "icon": "./assets/app-icon.png",
     "userInterfaceStyle": "light",
@@ -42,6 +42,13 @@
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE"
       ]
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/0d374624-39fd-4970-8d41-07ce1a3538a3",
+      "fallbackToCacheTimeout": 3000
     },
     "plugins": [
       "expo-notifications",

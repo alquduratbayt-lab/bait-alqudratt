@@ -16,7 +16,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { supabase } from '../lib/supabase';
-import { sendOTPForPasswordReset } from '../services/taqnyatService';
+import { sendOTPForPasswordReset, verifyOTP } from '../services/taqnyatService';
 
 const BackIcon = () => (
   <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
@@ -158,42 +158,16 @@ export default function ForgotPasswordScreen({ navigation }) {
 
     setLoading(true);
     try {
-      // في وضع التطوير: قبول الكود 5555 مباشرة
-      if (code === '5555') {
-        console.log('⚠️ وضع التطوير: استخدم الكود 5555 للتحقق');
-        setStep(3);
-        setLoading(false);
-        return;
-      }
+      const result = await verifyOTP(formattedPhone, code);
 
-      const { data: otpData, error: otpError } = await supabase
-        .from('otp_codes')
-        .select('*')
-        .eq('phone', formattedPhone)
-        .eq('code', code)
-        .single();
-
-      if (otpError || !otpData) {
-        Alert.alert('خطأ', 'رمز التحقق غير صحيح');
+      if (!result.success) {
+        Alert.alert('خطأ', result.message || 'رمز التحقق غير صحيح');
         setOtp(['', '', '', '']);
         inputRefs[0].current?.focus();
         setLoading(false);
         return;
       }
 
-      const otpCreatedAt = new Date(otpData.created_at);
-      const now = new Date();
-      const diffMinutes = (now - otpCreatedAt) / (1000 * 60);
-
-      if (diffMinutes > 10) {
-        Alert.alert('خطأ', 'انتهت صلاحية رمز التحقق. الرجاء طلب رمز جديد');
-        setOtp(['', '', '', '']);
-        inputRefs[0].current?.focus();
-        setLoading(false);
-        return;
-      }
-
-      // التحويل مباشرة للخطوة التالية بدون رسالة
       setStep(3);
     } catch (error) {
       console.error('Error verifying OTP:', error);
