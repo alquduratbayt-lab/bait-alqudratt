@@ -1,47 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
-  FlatList,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { supabase } from '../lib/supabase';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import Svg, { Path, Circle, Rect } from 'react-native-svg';
-
-// أيقونة الكتاب
-const BookIcon = () => (
-  <Svg width={40} height={40} viewBox="0 0 50 50" fill="none">
-    <Rect x={10} y={5} width={30} height={8} rx={2} fill="#f59e0b" />
-    <Rect x={8} y={12} width={34} height={30} rx={3} fill="#fef3c7" stroke="#f59e0b" strokeWidth={2} />
-    <Path d="M15 20h20M15 27h15M15 34h10" stroke="#f59e0b" strokeWidth={2} strokeLinecap="round" />
-    <Circle cx={38} cy={8} r={6} fill="#3b82f6" />
-    <Path d="M35 8l2 2 4-4" stroke="#fff" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-  </Svg>
-);
-
-// أيقونة السماعة
-const HeadphoneIcon = () => (
-  <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M3 18v-6a9 9 0 0118 0v6"
-      stroke="#999"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <Path
-      d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3v5zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3v5z"
-      stroke="#999"
-      strokeWidth={2}
-      fill="#e5e7eb"
-    />
-  </Svg>
-);
 
 // أيقونة الرئيسية
 const HomeIcon = ({ active }) => (
@@ -127,39 +95,8 @@ const ProfileIcon = ({ active }) => (
   </Svg>
 );
 
-const books = [
-  {
-    id: '1',
-    title: 'Math book',
-    subtitle: 'Algebra and statiscs book',
-    category: 'كمي',
-  },
-];
-
 export default function BooksScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState('books');
-  const [activeFilter, setActiveFilter] = useState('all');
-
-  const filters = [
-    { id: 'all', label: 'الكل' },
-    { id: 'quantitative', label: 'كمي' },
-    { id: 'verbal', label: 'لفظي' },
-  ];
-
-  const renderBook = ({ item }) => (
-    <TouchableOpacity style={styles.bookCard}>
-      <TouchableOpacity style={styles.audioButton}>
-        <HeadphoneIcon />
-      </TouchableOpacity>
-      <View style={styles.bookInfo}>
-        <Text style={styles.bookTitle}>{item.title}</Text>
-        <Text style={styles.bookSubtitle}>{item.subtitle}</Text>
-      </View>
-      <View style={styles.bookIconContainer}>
-        <BookIcon />
-      </View>
-    </TouchableOpacity>
-  );
 
   const handleTabPress = (tab) => {
     if (tab === 'books') return;
@@ -181,37 +118,16 @@ export default function BooksScreen({ navigation }) {
         <Text style={styles.headerTitle}>الكتب</Text>
       </View>
 
-      {/* الفلاتر */}
-      <View style={styles.filtersContainer}>
-        {filters.map((filter) => (
-          <TouchableOpacity
-            key={filter.id}
-            style={[
-              styles.filterButton,
-              activeFilter === filter.id && styles.filterButtonActive,
-            ]}
-            onPress={() => setActiveFilter(filter.id)}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                activeFilter === filter.id && styles.filterTextActive,
-              ]}
-            >
-              {filter.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+      {/* رسالة قريباً */}
+      <View style={styles.comingSoonContainer}>
+        <Svg width={80} height={80} viewBox="0 0 50 50" fill="none">
+          <Rect x={8} y={12} width={34} height={30} rx={3} fill="#fef3c7" stroke="#f59e0b" strokeWidth={2} />
+          <Rect x={10} y={5} width={30} height={8} rx={2} fill="#f59e0b" />
+          <Path d="M15 20h20M15 27h15M15 34h10" stroke="#f59e0b" strokeWidth={2} strokeLinecap="round" />
+        </Svg>
+        <Text style={styles.comingSoonTitle}>قريباً</Text>
+        <Text style={styles.comingSoonText}>سوف يتم إضافة كتب ومراجع تساعدك{'\n'}في رحلتك التعليمية، ترقّب!</Text>
       </View>
-
-      {/* قائمة الكتب */}
-      <FlatList
-        data={books}
-        renderItem={renderBook}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.booksList}
-        showsVerticalScrollIndicator={false}
-      />
 
       {/* شريط التنقل السفلي */}
       <View style={styles.bottomNav}>
@@ -268,80 +184,24 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
-  filtersContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    gap: 10,
-  },
-  filterButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: '#f5f5f5',
-    minWidth: 70,
-    alignItems: 'center',
-  },
-  filterButtonActive: {
-    backgroundColor: '#e8f4f8',
-    borderWidth: 1,
-    borderColor: '#1a5f7a',
-  },
-  filterText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  filterTextActive: {
-    color: '#1a5f7a',
-    fontWeight: '600',
-  },
-  booksList: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-  },
-  bookCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
-  },
-  audioButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#f5f5f5',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  bookInfo: {
+  comingSoonContainer: {
     flex: 1,
-    marginRight: 12,
-    alignItems: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
   },
-  bookTitle: {
+  comingSoonTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#1a5f7a',
+    marginTop: 20,
+    marginBottom: 12,
+  },
+  comingSoonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    textAlign: 'right',
-  },
-  bookSubtitle: {
-    fontSize: 13,
-    color: '#999',
-    marginTop: 4,
-    textAlign: 'right',
-  },
-  bookIconContainer: {
-    marginLeft: 8,
+    color: '#888',
+    textAlign: 'center',
+    lineHeight: 26,
   },
   bottomNav: {
     flexDirection: 'row',
