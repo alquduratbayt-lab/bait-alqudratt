@@ -355,6 +355,12 @@ export default function HtmlRenderer({ html, style }) {
     return parts.length > 0 ? parts : [{ type: 'text', content: text.replace(/<[^>]*>/g, '') }];
   };
   
+  // كشف LaTeX بأقواس: {0}^{30}, x^{2}, _{n}, etc.
+  const hasLatexBraceMath = /\{[^}]*\}\s*[\^_]|\^[\s]*\{[^}]*\}|_[\s]*\{[^}]*\}/.test(cleanHtml);
+  if (hasLatexBraceMath && !cleanHtml.includes('<')) {
+    return <MathRenderer latex={cleanHtml} style={style} />;
+  }
+
   // التحقق من وجود رياضيات
   const hasMath = /\/|√|sqrt|\^|²|³|⁴|⁵/.test(cleanHtml);
   
