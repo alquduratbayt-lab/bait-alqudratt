@@ -75,14 +75,16 @@ serve(async (req) => {
     const isPwdReset = purpose === 'password_reset'
     let smsBody: string
 
+    const subscriptionNote = '\nللاشتراك يرجى زيارة الموقع bait.sa'
+
     if (userName) {
       smsBody = isPwdReset
         ? `أهلاً ${userName}\nكود التحقق: ${otpCode}\nلاستعادة كلمة المرور في بيت القدرات`
-        : `أهلاً ${userName}\nكود التحقق: ${otpCode}\nلإنشاء حسابكم في بيت القدرات`
+        : `أهلاً ${userName}\nكود التحقق: ${otpCode}\nلإنشاء حسابكم في بيت القدرات${subscriptionNote}`
     } else {
       smsBody = isPwdReset
         ? `كود التحقق: ${otpCode}\nلاستعادة كلمة المرور في بيت القدرات`
-        : `كود التحقق: ${otpCode}\nلإنشاء حسابكم في بيت القدرات`
+        : `كود التحقق: ${otpCode}\nلإنشاء حسابكم في بيت القدرات${subscriptionNote}`
     }
 
     console.log('Sending SMS via proxy...')
