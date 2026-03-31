@@ -6,7 +6,8 @@ INSERT INTO app_settings (setting_key, setting_value, setting_type, category, la
 VALUES 
   ('social_instagram', '', 'text', 'social', 'رابط Instagram', 'رابط حساب Instagram الرسمي (مثال: https://instagram.com/username)'),
   ('social_twitter', '', 'text', 'social', 'رابط Twitter', 'رابط حساب Twitter الرسمي (مثال: https://twitter.com/username)'),
-  ('social_tiktok', '', 'text', 'social', 'رابط TikTok', 'رابط حساب TikTok الرسمي (مثال: https://tiktok.com/@username)')
+  ('social_tiktok', '', 'text', 'social', 'رابط TikTok', 'رابط حساب TikTok الرسمي (مثال: https://tiktok.com/@username)'),
+  ('social_snapchat', '', 'text', 'social', 'رابط Snapchat', 'رابط حساب Snapchat الرسمي (مثال: https://snapchat.com/add/username)')
 ON CONFLICT (setting_key) DO NOTHING;
 
 -- التحقق من الإضافة

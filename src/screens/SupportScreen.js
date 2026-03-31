@@ -116,13 +116,27 @@ const TikTokIcon = () => (
   </Svg>
 );
 
+// أيقونة Snapchat
+const SnapchatIcon = () => (
+  <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M12 2C9.243 2 7.5 3.88 7.5 6.75v1.626c-.453-.07-.87-.025-1.2.158-.393.218-.55.59-.55.853 0 .522.452.807.78.96.114.053.236.1.35.142.175.065.319.118.385.183.052.05.064.095.027.2-.255.736-.755 1.393-1.487 1.955-.377.29-.816.53-1.262.693-.544.2-.79.545-.79.893 0 .483.44.87.803 1.023.156.065.326.114.5.152-.015.21.03.433.2.632.322.377.926.555 1.844.555.206 0 .425-.012.655-.037.15.436.592 1.13 1.756 1.64C10.368 18.9 11.2 19 12 19s1.632-.1 2.489-.646c1.164-.51 1.606-1.204 1.756-1.64.23.025.449.037.655.037.918 0 1.522-.178 1.844-.555.17-.199.215-.423.2-.632.174-.038.344-.087.5-.152.363-.153.803-.54.803-1.023 0-.348-.246-.694-.79-.893a4.578 4.578 0 01-1.262-.693c-.732-.562-1.232-1.22-1.487-1.955-.037-.105-.025-.15.027-.2.066-.065.21-.118.386-.183.113-.042.235-.089.349-.142.328-.153.78-.438.78-.96 0-.263-.157-.635-.55-.853-.33-.183-.747-.228-1.2-.158V6.75C16.5 3.88 14.757 2 12 2z"
+      stroke="#1a5f7a"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
 export default function SupportScreen({ navigation }) {
   const [phoneNumber, setPhoneNumber] = React.useState('+966500000000');
   const [whatsappNumber, setWhatsappNumber] = React.useState('+966500000000');
   const [socialMedia, setSocialMedia] = React.useState({
     instagram: '',
     twitter: '',
-    tiktok: ''
+    tiktok: '',
+    snapchat: ''
   });
 
   useFocusEffect(
@@ -143,13 +157,15 @@ export default function SupportScreen({ navigation }) {
       const instagram = await getSetting('social_instagram', '');
       const twitter = await getSetting('social_twitter', '');
       const tiktok = await getSetting('social_tiktok', '');
+      const snapchat = await getSetting('social_snapchat', '');
       
       setPhoneNumber(phone);
       setWhatsappNumber(whatsapp);
       setSocialMedia({
         instagram,
         twitter,
-        tiktok
+        tiktok,
+        snapchat
       });
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -175,7 +191,7 @@ export default function SupportScreen({ navigation }) {
     }
   };
 
-  const hasSocialMedia = socialMedia.instagram || socialMedia.twitter || socialMedia.tiktok;
+  const hasSocialMedia = socialMedia.instagram || socialMedia.twitter || socialMedia.tiktok || socialMedia.snapchat;
 
   return (
     <View style={styles.container}>
@@ -246,6 +262,15 @@ export default function SupportScreen({ navigation }) {
                 >
                   <TikTokIcon />
                   <Text style={styles.socialLabel}>TikTok</Text>
+                </TouchableOpacity>
+              )}
+              {socialMedia.snapchat && (
+                <TouchableOpacity 
+                  style={styles.socialButton}
+                  onPress={() => handleSocialMedia(socialMedia.snapchat)}
+                >
+                  <SnapchatIcon />
+                  <Text style={styles.socialLabel}>Snapchat</Text>
                 </TouchableOpacity>
               )}
             </View>
