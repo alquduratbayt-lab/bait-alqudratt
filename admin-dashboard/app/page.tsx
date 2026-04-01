@@ -21,7 +21,9 @@ import {
   Award,
   TrendingUp,
   Shield,
-  Zap
+  Zap,
+  Menu,
+  X
 } from 'lucide-react';
 
 interface AboutSection {
@@ -75,6 +77,7 @@ export default function LandingPage() {
   const [features, setFeatures] = useState<Feature[]>([]);
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -164,7 +167,23 @@ export default function LandingPage() {
               <a href="#testimonials" className="text-gray-600 hover:text-[#1a5f7a] transition-colors text-sm font-medium">التقييمات</a>
               <a href="/login" className="bg-gradient-to-r from-[#1a5f7a] to-[#f9a825] text-white px-6 py-2.5 rounded-full hover:shadow-lg transition-all font-medium text-sm">اشترك الآن</a>
             </div>
+            <button
+              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="القائمة"
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6 text-gray-700" /> : <Menu className="w-6 h-6 text-gray-700" />}
+            </button>
           </div>
+          {mobileMenuOpen && (
+            <div className="md:hidden border-t border-gray-100 py-4 px-2 space-y-2">
+              <a href="#about" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-3 text-gray-600 hover:text-[#1a5f7a] hover:bg-gray-50 rounded-lg transition-colors text-sm font-medium text-right">من نحن</a>
+              <a href="#features" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-3 text-gray-600 hover:text-[#1a5f7a] hover:bg-gray-50 rounded-lg transition-colors text-sm font-medium text-right">الميزات</a>
+              <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-3 text-gray-600 hover:text-[#1a5f7a] hover:bg-gray-50 rounded-lg transition-colors text-sm font-medium text-right">أسئلة شائعة</a>
+              <a href="#testimonials" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-3 text-gray-600 hover:text-[#1a5f7a] hover:bg-gray-50 rounded-lg transition-colors text-sm font-medium text-right">التقييمات</a>
+              <a href="/login" onClick={() => setMobileMenuOpen(false)} className="block mx-4 mt-2 text-center bg-gradient-to-r from-[#1a5f7a] to-[#f9a825] text-white px-6 py-3 rounded-full hover:shadow-lg transition-all font-medium text-sm">اشترك الآن</a>
+            </div>
+          )}
         </nav>
       </header>
 
