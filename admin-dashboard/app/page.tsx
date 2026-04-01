@@ -23,7 +23,8 @@ import {
   Shield,
   Zap,
   Menu,
-  X
+  X,
+  Check
 } from 'lucide-react';
 
 interface AboutSection {
@@ -69,6 +70,16 @@ interface Feature {
   icon?: string;
 }
 
+interface SubscriptionPlan {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  duration_days: number;
+  features: string[];
+  is_active: boolean;
+}
+
 export default function LandingPage() {
   const [about, setAbout] = useState<AboutSection | null>(null);
   const [faqs, setFaqs] = useState<FAQ[]>([]);
@@ -76,6 +87,7 @@ export default function LandingPage() {
   const [contact, setContact] = useState<ContactInfo | null>(null);
   const [features, setFeatures] = useState<Feature[]>([]);
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -85,7 +97,7 @@ export default function LandingPage() {
 
   const fetchData = async () => {
     try {
-      const [aboutRes, faqsRes, testimonialsRes, contactRes, featuresRes, settingsRes] = await Promise.all([
+      const [aboutRes, faqsRes, testimonialsRes, contactRes, featuresRes, settingsRes, plansRes] = await Promise.all([
         supabase
           .from('about_section')
           .select('*')
@@ -112,7 +124,12 @@ export default function LandingPage() {
         supabase
           .from('site_settings')
           .select('*')
-          .single()
+          .single(),
+        supabase
+          .from('subscription_plans')
+          .select('*')
+          .eq('is_active', true)
+          .order('price')
       ]);
 
       if (aboutRes.data) setAbout(aboutRes.data);
@@ -121,6 +138,7 @@ export default function LandingPage() {
       if (contactRes.data) setContact(contactRes.data);
       if (featuresRes.data) setFeatures(featuresRes.data);
       if (settingsRes.data) setSiteSettings(settingsRes.data);
+      if (plansRes.data) setPlans(plansRes.data);
 
       setLoading(false);
     } catch (error) {
@@ -167,13 +185,16 @@ export default function LandingPage() {
               <a href="#testimonials" className="text-gray-600 hover:text-[#1a5f7a] transition-colors text-sm font-medium">التقييمات</a>
               <a href="/login" className="bg-gradient-to-r from-[#1a5f7a] to-[#f9a825] text-white px-6 py-2.5 rounded-full hover:shadow-lg transition-all font-medium text-sm">اشترك الآن</a>
             </div>
-            <button
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="القائمة"
-            >
-              {mobileMenuOpen ? <X className="w-6 h-6 text-gray-700" /> : <Menu className="w-6 h-6 text-gray-700" />}
-            </button>
+            <div className="flex md:hidden items-center gap-3">
+              <a href="/login" className="bg-gradient-to-r from-[#1a5f7a] to-[#f9a825] text-white px-5 py-2 rounded-full hover:shadow-lg transition-all font-medium text-sm">اشترك الآن</a>
+              <button
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                aria-label="القائمة"
+              >
+                {mobileMenuOpen ? <X className="w-6 h-6 text-gray-700" /> : <Menu className="w-6 h-6 text-gray-700" />}
+              </button>
+            </div>
           </div>
           {mobileMenuOpen && (
             <div className="md:hidden border-t border-gray-100 py-4 px-2 space-y-2">
@@ -216,7 +237,7 @@ export default function LandingPage() {
               <div className="flex flex-wrap gap-4">
                 <a
                   href="#"
-                  className="bg-gradient-to-r from-[#1a5f7a] to-[#2c5f7a] text-white px-8 py-4 rounded-2xl font-bold hover:shadow-2xl transition-all transform hover:-translate-y-1 flex items-center gap-2"
+                  className="flex-1 md:flex-none bg-gradient-to-r from-[#1a5f7a] to-[#2c5f7a] text-white px-8 py-4 rounded-2xl font-bold hover:shadow-2xl transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2"
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
@@ -225,7 +246,7 @@ export default function LandingPage() {
                 </a>
                 <a
                   href="#"
-                  className="bg-white border-2 border-gray-200 text-gray-700 px-8 py-4 rounded-2xl font-bold hover:shadow-xl transition-all transform hover:-translate-y-1 flex items-center gap-2"
+                  className="flex-1 md:flex-none bg-white border-2 border-gray-200 text-gray-700 px-8 py-4 rounded-2xl font-bold hover:shadow-xl transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2"
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.9 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"/>
@@ -372,6 +393,71 @@ export default function LandingPage() {
                     </div>
                     <h3 className="text-2xl font-bold text-gray-900 mb-3">{feature.title}</h3>
                     <p className="text-gray-600 leading-relaxed">{feature.description}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Pricing Section */}
+      {plans.length > 0 && (
+        <section id="pricing" className="py-20 bg-white relative overflow-hidden">
+          <div className="absolute top-10 left-10 w-40 h-40 bg-[#f9a825] rounded-full opacity-10 blur-3xl"></div>
+          <div className="absolute bottom-10 right-10 w-32 h-32 bg-[#1a5f7a] rounded-full opacity-10 blur-3xl"></div>
+          <div className="container mx-auto px-6 relative z-10">
+            <div className="text-center mb-16">
+              <div className="inline-block bg-green-100 text-green-700 px-5 py-2 rounded-full mb-6 font-semibold text-sm">
+                باقات الاشتراك
+              </div>
+              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">اختر الباقة المناسبة لك</h2>
+              <p className="text-xl text-gray-600">استثمر في مستقبلك التعليمي مع باقاتنا المتنوعة</p>
+            </div>
+            <div className="max-w-5xl mx-auto grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {plans.map((plan, index) => {
+                const gradients = ['from-blue-500 to-blue-600', 'from-purple-500 to-purple-600', 'from-amber-500 to-amber-600'];
+                const gradient = gradients[index % gradients.length];
+                const icons = ['🚀', '⭐', '👑'];
+                const icon = icons[index % icons.length];
+
+                return (
+                  <div
+                    key={plan.id}
+                    className="bg-white rounded-3xl shadow-xl overflow-hidden transform hover:-translate-y-2 transition-all duration-300 border border-gray-100"
+                  >
+                    <div className={`bg-gradient-to-r ${gradient} p-6 text-white`}>
+                      <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mb-4 text-2xl">
+                        {icon}
+                      </div>
+                      <h3 className="text-2xl font-bold mb-1">{plan.name}</h3>
+                      <p className="text-white/80 text-sm">{plan.description}</p>
+                    </div>
+                    <div className="p-6">
+                      <div className="text-center mb-6">
+                        <div className="flex items-baseline justify-center gap-1">
+                          <span className="text-5xl font-bold text-gray-900">{plan.price}</span>
+                          <span className="text-xl text-gray-600">ريال</span>
+                        </div>
+                        <p className="text-gray-500 mt-1">لمدة {plan.duration_days} يوم</p>
+                      </div>
+                      <div className="space-y-3 mb-6">
+                        {plan.features?.map((feature, idx) => (
+                          <div key={idx} className="flex items-center gap-3">
+                            <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                              <Check className="w-4 h-4 text-green-600" />
+                            </div>
+                            <span className="text-gray-700 text-sm">{feature}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <a
+                        href="/login"
+                        className={`block w-full text-center bg-gradient-to-r ${gradient} text-white py-4 rounded-xl font-bold text-lg hover:shadow-xl transition-all`}
+                      >
+                        اشترك الآن
+                      </a>
+                    </div>
                   </div>
                 );
               })}
