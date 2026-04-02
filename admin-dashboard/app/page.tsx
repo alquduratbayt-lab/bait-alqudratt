@@ -182,7 +182,9 @@ export default function LandingPage() {
               <a href="#about" className="text-gray-600 hover:text-[#1a5f7a] transition-colors text-sm font-medium">من نحن</a>
               <a href="#features" className="text-gray-600 hover:text-[#1a5f7a] transition-colors text-sm font-medium">الميزات</a>
               <a href="#faq" className="text-gray-600 hover:text-[#1a5f7a] transition-colors text-sm font-medium">أسئلة شائعة</a>
-              <a href="#testimonials" className="text-gray-600 hover:text-[#1a5f7a] transition-colors text-sm font-medium">التقييمات</a>
+              {testimonials.length > 0 && (
+                <a href="#testimonials" className="text-gray-600 hover:text-[#1a5f7a] transition-colors text-sm font-medium">التقييمات</a>
+              )}
               <a href="/login" className="bg-gradient-to-r from-[#1a5f7a] to-[#f9a825] text-white px-6 py-2.5 rounded-full hover:shadow-lg transition-all font-medium text-sm">اشترك الآن</a>
             </div>
             <div className="flex md:hidden items-center gap-3">
@@ -201,7 +203,9 @@ export default function LandingPage() {
               <a href="#about" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-3 text-gray-600 hover:text-[#1a5f7a] hover:bg-gray-50 rounded-lg transition-colors text-sm font-medium text-right">من نحن</a>
               <a href="#features" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-3 text-gray-600 hover:text-[#1a5f7a] hover:bg-gray-50 rounded-lg transition-colors text-sm font-medium text-right">الميزات</a>
               <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-3 text-gray-600 hover:text-[#1a5f7a] hover:bg-gray-50 rounded-lg transition-colors text-sm font-medium text-right">أسئلة شائعة</a>
-              <a href="#testimonials" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-3 text-gray-600 hover:text-[#1a5f7a] hover:bg-gray-50 rounded-lg transition-colors text-sm font-medium text-right">التقييمات</a>
+              {testimonials.length > 0 && (
+                <a href="#testimonials" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-3 text-gray-600 hover:text-[#1a5f7a] hover:bg-gray-50 rounded-lg transition-colors text-sm font-medium text-right">التقييمات</a>
+              )}
               <a href="/login" onClick={() => setMobileMenuOpen(false)} className="block mx-4 mt-2 text-center bg-gradient-to-r from-[#1a5f7a] to-[#f9a825] text-white px-6 py-3 rounded-full hover:shadow-lg transition-all font-medium text-sm">اشترك الآن</a>
             </div>
           )}
@@ -676,9 +680,15 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="border-t border-gray-200 pt-8 text-center">
+          <div className="border-t border-gray-200 pt-8 text-center space-y-2">
             <p className="text-gray-500">
               © 2026 {siteSettings?.site_name || 'بيت القدرات'}. جميع الحقوق محفوظة.
+            </p>
+            <p className="text-gray-400 text-sm">
+              تطوير وبرمجة{' '}
+              <a href="https://alftqni.com/" target="_blank" rel="noopener noreferrer" className="text-[#1a5f7a] hover:underline font-medium">
+                ألف تقني
+              </a>
             </p>
           </div>
         </div>
