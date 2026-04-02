@@ -227,11 +227,11 @@ export default function LoginPage() {
                     value={phone}
                     onChange={(e) => setPhone(formatPhoneNumber(e.target.value))}
                     placeholder="05xxxxxxxx"
-                    className="w-full px-4 py-4 pr-12 border-2 border-gray-200 rounded-xl text-lg focus:border-[#1a5f7a] focus:outline-none transition-colors text-left"
+                    className="w-full px-4 py-4 pr-12 border-2 border-gray-200 rounded-xl text-lg focus:border-[#1a5f7a] focus:outline-none transition-colors text-left placeholder:text-gray-400"
                     dir="ltr"
                     disabled={loading}
                   />
-                  <Phone className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Phone className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1a5f7a]" />
                 </div>
               </div>
 
@@ -244,16 +244,16 @@ export default function LoginPage() {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full px-4 py-4 pr-12 border-2 border-gray-200 rounded-xl text-lg focus:border-[#1a5f7a] focus:outline-none transition-colors text-left"
+                    placeholder="ادخل كلمة المرور"
+                    className="w-full px-4 py-4 pr-12 border-2 border-gray-200 rounded-xl text-lg focus:border-[#1a5f7a] focus:outline-none transition-colors text-left placeholder:text-gray-400"
                     dir="ltr"
                     disabled={loading}
                   />
-                  <Lock className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Lock className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1a5f7a]" />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1a5f7a] hover:text-[#134a5e]"
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
