@@ -22,6 +22,13 @@ const generateUUID = () => {
   });
 };
 
+/** نص الخيار يُعرض فقط إن وُجد محتوى بعد إزالة HTML */
+function hasOptionTextContent(html) {
+  if (!html) return false;
+  const plain = String(html).replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' ').trim();
+  return plain.length > 0;
+}
+
 // أيقونة السهم للخلف
 const BackIcon = () => (
   <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
@@ -964,7 +971,18 @@ export default function LessonDetailScreen({ navigation, route }) {
                         <Path d="M20 6L9 17l-5-5" stroke="#22c55e" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
                       </Svg>
                     </View>
-                    <HtmlRenderer html={result.question[`option_${result.userAnswer.toLowerCase()}`]} style={styles.answerText} />
+                    <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                      {result.question[`option_${result.userAnswer.toLowerCase()}_image_url`] ? (
+                        <Image
+                          source={{ uri: result.question[`option_${result.userAnswer.toLowerCase()}_image_url`] }}
+                          style={styles.answerResultOptionImage}
+                          resizeMode="contain"
+                        />
+                      ) : null}
+                      {hasOptionTextContent(result.question[`option_${result.userAnswer.toLowerCase()}`]) ? (
+                        <HtmlRenderer html={result.question[`option_${result.userAnswer.toLowerCase()}`]} style={styles.answerText} />
+                      ) : null}
+                    </View>
                   </View>
                 </View>
               ))}
@@ -1007,7 +1025,18 @@ export default function LessonDetailScreen({ navigation, route }) {
                         <Path d="M18 6L6 18M6 6l12 12" stroke="#ef4444" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
                       </Svg>
                     </View>
-                    <HtmlRenderer html={result.question[`option_${result.userAnswer.toLowerCase()}`]} style={styles.answerText} />
+                    <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                      {result.question[`option_${result.userAnswer.toLowerCase()}_image_url`] ? (
+                        <Image
+                          source={{ uri: result.question[`option_${result.userAnswer.toLowerCase()}_image_url`] }}
+                          style={styles.answerResultOptionImage}
+                          resizeMode="contain"
+                        />
+                      ) : null}
+                      {hasOptionTextContent(result.question[`option_${result.userAnswer.toLowerCase()}`]) ? (
+                        <HtmlRenderer html={result.question[`option_${result.userAnswer.toLowerCase()}`]} style={styles.answerText} />
+                      ) : null}
+                    </View>
                   </View>
                 </View>
               ))}
@@ -1205,6 +1234,10 @@ export default function LessonDetailScreen({ navigation, route }) {
             <View style={styles.optionsContainer}>
               {['A', 'B', 'C', 'D'].map((option, index) => {
                 const arabicLetters = ['أ', 'ب', 'ج', 'د'];
+                const optLower = option.toLowerCase();
+                const optionHtml = currentQuestion[`option_${optLower}`];
+                const optionImageUrl = currentQuestion[`option_${optLower}_image_url`];
+                const showText = hasOptionTextContent(optionHtml);
                 return (
                   <TouchableOpacity
                     key={option}
@@ -1224,13 +1257,23 @@ export default function LessonDetailScreen({ navigation, route }) {
                         {arabicLetters[index]}.
                       </Text>
                       <View style={{ flex: 1, justifyContent: 'center' }}>
-                        <HtmlRenderer 
-                          html={currentQuestion[`option_${option.toLowerCase()}`]}
-                          style={[
-                            styles.optionText,
-                            selectedAnswer === option && styles.optionTextSelected
-                          ]}
-                        />
+                        {optionImageUrl ? (
+                          <Image
+                            source={{ uri: optionImageUrl }}
+                            style={styles.optionChoiceImage}
+                            resizeMode="contain"
+                          />
+                        ) : null}
+                        {showText ? (
+                          <HtmlRenderer 
+                            html={optionHtml}
+                            style={[
+                              styles.optionText,
+                              selectedAnswer === option && styles.optionTextSelected,
+                              optionImageUrl ? { marginTop: 8 } : null
+                            ]}
+                          />
+                        ) : null}
                       </View>
                     </View>
                     <View style={[
@@ -1793,6 +1836,12 @@ const styles = StyleSheet.create({
     color: '#2196F3',
     fontWeight: '600',
   },
+  optionChoiceImage: {
+    width: '100%',
+    maxWidth: width - 80,
+    height: 120,
+    alignSelf: 'flex-end',
+  },
   submitButton: {
     backgroundColor: '#2196F3',
     padding: 15,
@@ -1917,6 +1966,12 @@ const styles = StyleSheet.create({
   },
   answerIcon: {
     marginLeft: 10,
+  },
+  answerResultOptionImage: {
+    width: '100%',
+    maxWidth: width - 80,
+    height: 100,
+    marginBottom: 6,
   },
   answerText: {
     flex: 1,

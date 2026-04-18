@@ -17,6 +17,12 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import HtmlRenderer from '../components/HtmlRenderer';
 import { addExamCompletionPoints } from '../lib/pointsService';
 
+function hasOptionTextContent(html) {
+  if (!html) return false;
+  const plain = String(html).replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' ').trim();
+  return plain.length > 0;
+}
+
 // Skeleton Loader للسؤال
 const QuestionSkeleton = () => {
   const animatedValue = new Animated.Value(0);
@@ -481,6 +487,10 @@ export default function ExamScreen({ navigation, route }) {
             <View style={styles.optionsContainer}>
               {['A', 'B', 'C', 'D'].map((option, index) => {
                 const arabicLetters = ['أ', 'ب', 'ج', 'د'];
+                const optLower = option.toLowerCase();
+                const optionHtml = currentQuestion[`option_${optLower}`];
+                const optionImageUrl = currentQuestion[`option_${optLower}_image_url`];
+                const showText = hasOptionTextContent(optionHtml);
                 return (
                   <TouchableOpacity
                     key={option}
@@ -500,13 +510,23 @@ export default function ExamScreen({ navigation, route }) {
                         {arabicLetters[index]}.
                       </Text>
                       <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                        <HtmlRenderer 
-                          html={currentQuestion[`option_${option.toLowerCase()}`]} 
-                          style={[
-                            styles.optionText,
-                            selectedAnswer === option && styles.optionTextSelected
-                          ]} 
-                        />
+                        {optionImageUrl ? (
+                          <Image
+                            source={{ uri: optionImageUrl }}
+                            style={styles.optionChoiceImage}
+                            resizeMode="contain"
+                          />
+                        ) : null}
+                        {showText ? (
+                          <HtmlRenderer 
+                            html={optionHtml} 
+                            style={[
+                              styles.optionText,
+                              selectedAnswer === option && styles.optionTextSelected,
+                              optionImageUrl ? { marginTop: 8 } : null
+                            ]} 
+                          />
+                        ) : null}
                       </View>
                     </View>
                   </TouchableOpacity>
@@ -649,6 +669,11 @@ const styles = StyleSheet.create({
   optionTextSelected: {
     color: '#10b981',
     fontWeight: '600',
+  },
+  optionChoiceImage: {
+    width: '100%',
+    height: 120,
+    alignSelf: 'flex-end',
   },
   nextButton: {
     backgroundColor: '#10b981',

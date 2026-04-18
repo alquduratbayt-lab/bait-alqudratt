@@ -18,6 +18,12 @@ import HtmlRenderer from '../components/HtmlRenderer';
 
 const { width } = Dimensions.get('window');
 
+function hasOptionTextContent(html) {
+  if (!html) return false;
+  const plain = String(html).replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' ').trim();
+  return plain.length > 0;
+}
+
 export default function SubjectFinalExamScreen({ navigation, route }) {
   const { subjectId, subjectName, passingPercentage = 60 } = route.params || {};
   
@@ -573,7 +579,10 @@ export default function SubjectFinalExamScreen({ navigation, route }) {
         {/* Options */}
         <View style={styles.optionsContainer}>
           {['A', 'B', 'C', 'D'].map((option, index) => {
-            const optionText = currentQuestion[`option_${option.toLowerCase()}`];
+            const optLower = option.toLowerCase();
+            const optionHtml = currentQuestion[`option_${optLower}`];
+            const optionImageUrl = currentQuestion[`option_${optLower}_image_url`];
+            const showText = hasOptionTextContent(optionHtml);
             const isSelected = selectedAnswer === option;
             const arabicNumbers = ['١', '٢', '٣', '٤'];
             
@@ -586,7 +595,25 @@ export default function SubjectFinalExamScreen({ navigation, route }) {
                 <View style={[styles.optionCircle, isSelected && styles.optionCircleSelected]}>
                   <Text style={[styles.optionLetter, isSelected && styles.optionLetterSelected]}>{arabicNumbers[index]}</Text>
                 </View>
-                <Text style={[styles.optionText, isSelected && styles.optionTextSelected]}>{optionText}</Text>
+                <View style={styles.optionContentCol}>
+                  {optionImageUrl ? (
+                    <Image
+                      source={{ uri: optionImageUrl }}
+                      style={styles.optionChoiceImage}
+                      resizeMode="contain"
+                    />
+                  ) : null}
+                  {showText ? (
+                    <HtmlRenderer
+                      html={optionHtml}
+                      style={[
+                        styles.optionText,
+                        isSelected && styles.optionTextSelected,
+                        optionImageUrl ? { marginTop: 8 } : null
+                      ]}
+                    />
+                  ) : null}
+                </View>
               </TouchableOpacity>
             );
           })}
@@ -722,7 +749,7 @@ const styles = StyleSheet.create({
   },
   optionButton: {
     flexDirection: 'row-reverse',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     backgroundColor: '#fff',
     padding: 16,
     borderRadius: 12,
@@ -733,6 +760,15 @@ const styles = StyleSheet.create({
   optionButtonSelected: {
     borderColor: '#6366f1',
     backgroundColor: '#eef2ff',
+  },
+  optionContentCol: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  optionChoiceImage: {
+    width: width - 100,
+    maxWidth: '100%',
+    height: 120,
   },
   optionCircle: {
     width: 32,

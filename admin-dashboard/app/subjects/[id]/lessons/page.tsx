@@ -30,6 +30,14 @@ interface Question {
   option_b: string;
   option_c: string;
   option_d: string;
+  option_a_image_url?: string;
+  option_b_image_url?: string;
+  option_c_image_url?: string;
+  option_d_image_url?: string;
+  option_a_image_file?: File | null;
+  option_b_image_file?: File | null;
+  option_c_image_file?: File | null;
+  option_d_image_file?: File | null;
   correct_answer: string;
   show_at_time: number;
 }
@@ -121,6 +129,14 @@ export default function LessonsPage() {
       option_b: '',
       option_c: '',
       option_d: '',
+      option_a_image_url: '',
+      option_b_image_url: '',
+      option_c_image_url: '',
+      option_d_image_url: '',
+      option_a_image_file: null,
+      option_b_image_file: null,
+      option_c_image_file: null,
+      option_d_image_file: null,
       correct_answer: 'A',
       show_at_time: 0,
     }]);
@@ -135,6 +151,14 @@ export default function LessonsPage() {
       option_b: '',
       option_c: '',
       option_d: '',
+      option_a_image_url: '',
+      option_b_image_url: '',
+      option_c_image_url: '',
+      option_d_image_url: '',
+      option_a_image_file: null,
+      option_b_image_file: null,
+      option_c_image_file: null,
+      option_d_image_file: null,
       correct_answer: 'A',
       show_at_time: 0,
     }]);
@@ -149,6 +173,18 @@ export default function LessonsPage() {
   const updateExamQuestion = (index: number, field: keyof Question, value: string | number) => {
     const updated = [...examQuestions];
     updated[index] = { ...updated[index], [field]: value };
+    setExamQuestions(updated);
+  };
+
+  const patchQuestionAt = (index: number, patch: Partial<Question>) => {
+    const updated = [...questions];
+    updated[index] = { ...updated[index], ...patch };
+    setQuestions(updated);
+  };
+
+  const patchExamQuestionAt = (index: number, patch: Partial<Question>) => {
+    const updated = [...examQuestions];
+    updated[index] = { ...updated[index], ...patch };
     setExamQuestions(updated);
   };
 
@@ -441,7 +477,7 @@ export default function LessonsPage() {
       }
 
       if (questions.length > 0) {
-        const questionsToInsert = await Promise.all(questions.map(async (q: any) => {
+        const questionsToInsert = await Promise.all(questions.map(async (q: any, qIdx: number) => {
           let imageUrl = q.question_image_url || null;
           
           // تجاهل الـ id القديم لتجنب التكرار
@@ -493,16 +529,45 @@ export default function LessonsPage() {
             
             return clean;
           };
+
+          const optLetters = ['a', 'b', 'c', 'd'] as const;
+          const defaults = ['خيار أ', 'خيار ب', 'خيار ج', 'خيار د'] as const;
+          const optionImageUrls: Record<string, string | null> = {};
+          for (let i = 0; i < optLetters.length; i++) {
+            const letter = optLetters[i];
+            let u: string | null = q[`option_${letter}_image_url`] || null;
+            if (q[`option_${letter}_image_file`]) {
+              const f = q[`option_${letter}_image_file`] as File;
+              const fileName = `question-options/${Date.now()}_${qIdx}_${letter}_${Math.random().toString(36).slice(2, 10)}_${f.name.replace(/\s/g, '_')}`;
+              const { error: upErr } = await supabase.storage.from('videos').upload(fileName, f);
+              if (!upErr) {
+                u = supabase.storage.from('videos').getPublicUrl(fileName).data.publicUrl;
+              }
+            }
+            optionImageUrls[letter] = u;
+          }
+
+          const safeOpt = (raw: string, letterIdx: number, letter: typeof optLetters[number]) => {
+            const c = cleanHtml(raw);
+            const hasImg = optionImageUrls[letter] || q[`option_${letter}_image_file`];
+            if (c) return c;
+            if (hasImg) return ' ';
+            return defaults[letterIdx];
+          };
           
           return {
             question_text: cleanHtml(q.question_text) || '',
             question_image_url: imageUrl,
             equation_latex: q.equation_latex || null,
             equation_image_url: q.equation_image_url || null,
-            option_a: cleanHtml(q.option_a) || 'خيار أ',
-            option_b: cleanHtml(q.option_b) || 'خيار ب',
-            option_c: cleanHtml(q.option_c) || 'خيار ج',
-            option_d: cleanHtml(q.option_d) || 'خيار د',
+            option_a: safeOpt(q.option_a, 0, 'a'),
+            option_b: safeOpt(q.option_b, 1, 'b'),
+            option_c: safeOpt(q.option_c, 2, 'c'),
+            option_d: safeOpt(q.option_d, 3, 'd'),
+            option_a_image_url: optionImageUrls.a,
+            option_b_image_url: optionImageUrls.b,
+            option_c_image_url: optionImageUrls.c,
+            option_d_image_url: optionImageUrls.d,
             correct_answer: q.correct_answer || 'A',
             show_at_time: q.show_at_time || 0,
             lesson_id: lessonData.id,
@@ -559,7 +624,7 @@ export default function LessonsPage() {
           return clean;
         };
 
-        const examQuestionsToInsert = await Promise.all(examQuestions.map(async (q: any) => {
+        const examQuestionsToInsert = await Promise.all(examQuestions.map(async (q: any, qIdx: number) => {
           let imageUrl = q.question_image_url || null;
 
           if (q.question_image_file) {
@@ -573,16 +638,45 @@ export default function LessonsPage() {
             }
           }
 
+          const optLetters = ['a', 'b', 'c', 'd'] as const;
+          const defaults = ['خيار أ', 'خيار ب', 'خيار ج', 'خيار د'] as const;
+          const optionImageUrls: Record<string, string | null> = {};
+          for (let i = 0; i < optLetters.length; i++) {
+            const letter = optLetters[i];
+            let u: string | null = q[`option_${letter}_image_url`] || null;
+            if (q[`option_${letter}_image_file`]) {
+              const f = q[`option_${letter}_image_file`] as File;
+              const fileName = `exam-option-images/${Date.now()}_${qIdx}_${letter}_${Math.random().toString(36).slice(2, 10)}_${f.name.replace(/\s/g, '_')}`;
+              const { error: upErr } = await supabase.storage.from('videos').upload(fileName, f);
+              if (!upErr) {
+                u = supabase.storage.from('videos').getPublicUrl(fileName).data.publicUrl;
+              }
+            }
+            optionImageUrls[letter] = u;
+          }
+
+          const safeOpt = (raw: string, letterIdx: number, letter: typeof optLetters[number]) => {
+            const c = cleanHtml(raw);
+            const hasImg = optionImageUrls[letter] || q[`option_${letter}_image_file`];
+            if (c) return c;
+            if (hasImg) return ' ';
+            return defaults[letterIdx];
+          };
+
           return {
             lesson_id: lessonData.id,
             question_text: cleanHtml(q.question_text),
             question_image_url: imageUrl,
             equation_latex: q.equation_latex || null,
             equation_image_url: q.equation_image_url || null,
-            option_a: cleanHtml(q.option_a),
-            option_b: cleanHtml(q.option_b),
-            option_c: cleanHtml(q.option_c),
-            option_d: cleanHtml(q.option_d),
+            option_a: safeOpt(q.option_a, 0, 'a'),
+            option_b: safeOpt(q.option_b, 1, 'b'),
+            option_c: safeOpt(q.option_c, 2, 'c'),
+            option_d: safeOpt(q.option_d, 3, 'd'),
+            option_a_image_url: optionImageUrls.a,
+            option_b_image_url: optionImageUrls.b,
+            option_c_image_url: optionImageUrls.c,
+            option_d_image_url: optionImageUrls.d,
             correct_answer: q.correct_answer,
           };
         }));
@@ -1145,23 +1239,77 @@ export default function LessonsPage() {
                         <p className="text-xs text-gray-500 mt-1 text-right">يمكنك رفع صورة تحتوي على شكل هندسي أو السؤال كاملاً (الحد الأقصى 5MB)</p>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="flex gap-2">
-                          <input type="text" value={question.option_a} onChange={(e) => updateQuestion(index, 'option_a', e.target.value)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold" placeholder="الخيار A" />
-                          <button type="button" onClick={() => { setCurrentMathField({ type: 'question', index, field: 'option_a' }); setTempLatex(''); setShowMathEditor(true); }} className="px-2 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition" title="إضافة معادلة">∑</button>
-                        </div>
-                        <div className="flex gap-2">
-                          <input type="text" value={question.option_b} onChange={(e) => updateQuestion(index, 'option_b', e.target.value)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold" placeholder="الخيار B" />
-                          <button type="button" onClick={() => { setCurrentMathField({ type: 'question', index, field: 'option_b' }); setTempLatex(''); setShowMathEditor(true); }} className="px-2 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition" title="إضافة معادلة">∑</button>
-                        </div>
-                        <div className="flex gap-2">
-                          <input type="text" value={question.option_c} onChange={(e) => updateQuestion(index, 'option_c', e.target.value)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold" placeholder="الخيار C" />
-                          <button type="button" onClick={() => { setCurrentMathField({ type: 'question', index, field: 'option_c' }); setTempLatex(''); setShowMathEditor(true); }} className="px-2 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition" title="إضافة معادلة">∑</button>
-                        </div>
-                        <div className="flex gap-2">
-                          <input type="text" value={question.option_d} onChange={(e) => updateQuestion(index, 'option_d', e.target.value)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold" placeholder="الخيار D" />
-                          <button type="button" onClick={() => { setCurrentMathField({ type: 'question', index, field: 'option_d' }); setTempLatex(''); setShowMathEditor(true); }} className="px-2 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition" title="إضافة معادلة">∑</button>
-                        </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {(['a', 'b', 'c', 'd'] as const).map((letter) => {
+                          const optKey = `option_${letter}` as 'option_a' | 'option_b' | 'option_c' | 'option_d';
+                          const imgUrlKey = `option_${letter}_image_url` as keyof Question;
+                          const imgFileKey = `option_${letter}_image_file` as keyof Question;
+                          const label = letter.toUpperCase();
+                          return (
+                            <div key={letter} className="border border-gray-100 rounded-lg p-3 space-y-2 bg-gray-50/50">
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  value={question[optKey]}
+                                  onChange={(e) => updateQuestion(index, optKey, e.target.value)}
+                                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold"
+                                  placeholder={`نص الخيار ${label} (أو اتركه فارغاً إذا كانت الصورة فقط)`}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => { setCurrentMathField({ type: 'question', index, field: optKey }); setTempLatex(''); setShowMathEditor(true); }}
+                                  className="px-2 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition shrink-0"
+                                  title="إضافة معادلة"
+                                >
+                                  ∑
+                                </button>
+                              </div>
+                              <div>
+                                <label className="block text-xs text-gray-600 mb-1 text-right">🖼 صورة الخيار {label} (اختياري)</label>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="w-full text-sm"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    if (file.size > 5 * 1024 * 1024) {
+                                      alert('حجم الصورة كبير جداً! الحد الأقصى 5MB');
+                                      e.target.value = '';
+                                      return;
+                                    }
+                                    patchQuestionAt(index, { [imgFileKey]: file } as Partial<Question>);
+                                  }}
+                                />
+                                {(question as any)[imgFileKey] && (
+                                  <div className="mt-2 relative inline-block">
+                                    <img src={URL.createObjectURL((question as any)[imgFileKey])} alt="" className="max-h-24 rounded border" />
+                                    <button
+                                      type="button"
+                                      onClick={() => patchQuestionAt(index, { [imgFileKey]: null } as Partial<Question>)}
+                                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                )}
+                                {question[imgUrlKey] && !(question as any)[imgFileKey] && (
+                                  <div className="mt-2 relative inline-block">
+                                    <img src={question[imgUrlKey] as string} alt="" className="max-h-24 rounded border" />
+                                    <button
+                                      type="button"
+                                      onClick={() => patchQuestionAt(index, { [imgUrlKey]: '' } as Partial<Question>)}
+                                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs"
+                                    >
+                                      ✕
+                                    </button>
+                                    <p className="text-xs text-green-600 mt-1">✓ صورة محفوظة</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
@@ -1326,23 +1474,77 @@ export default function LessonsPage() {
                         <p className="text-xs text-gray-500 mt-1 text-right">يمكنك رفع صورة تحتوي على شكل هندسي أو السؤال كاملاً (الحد الأقصى 5MB)</p>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="flex gap-2">
-                          <input type="text" value={question.option_a} onChange={(e) => updateExamQuestion(index, 'option_a', e.target.value)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold" placeholder="الخيار A" />
-                          <button type="button" onClick={() => { setCurrentMathField({ type: 'exam', index, field: 'option_a' }); setTempLatex(''); setShowMathEditor(true); }} className="px-2 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition" title="إضافة معادلة">∑</button>
-                        </div>
-                        <div className="flex gap-2">
-                          <input type="text" value={question.option_b} onChange={(e) => updateExamQuestion(index, 'option_b', e.target.value)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold" placeholder="الخيار B" />
-                          <button type="button" onClick={() => { setCurrentMathField({ type: 'exam', index, field: 'option_b' }); setTempLatex(''); setShowMathEditor(true); }} className="px-2 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition" title="إضافة معادلة">∑</button>
-                        </div>
-                        <div className="flex gap-2">
-                          <input type="text" value={question.option_c} onChange={(e) => updateExamQuestion(index, 'option_c', e.target.value)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold" placeholder="الخيار C" />
-                          <button type="button" onClick={() => { setCurrentMathField({ type: 'exam', index, field: 'option_c' }); setTempLatex(''); setShowMathEditor(true); }} className="px-2 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition" title="إضافة معادلة">∑</button>
-                        </div>
-                        <div className="flex gap-2">
-                          <input type="text" value={question.option_d} onChange={(e) => updateExamQuestion(index, 'option_d', e.target.value)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold" placeholder="الخيار D" />
-                          <button type="button" onClick={() => { setCurrentMathField({ type: 'exam', index, field: 'option_d' }); setTempLatex(''); setShowMathEditor(true); }} className="px-2 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition" title="إضافة معادلة">∑</button>
-                        </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {(['a', 'b', 'c', 'd'] as const).map((letter) => {
+                          const optKey = `option_${letter}` as 'option_a' | 'option_b' | 'option_c' | 'option_d';
+                          const imgUrlKey = `option_${letter}_image_url` as keyof Question;
+                          const imgFileKey = `option_${letter}_image_file` as keyof Question;
+                          const label = letter.toUpperCase();
+                          return (
+                            <div key={letter} className="border border-purple-100 rounded-lg p-3 space-y-2 bg-white">
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  value={question[optKey]}
+                                  onChange={(e) => updateExamQuestion(index, optKey, e.target.value)}
+                                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold"
+                                  placeholder={`نص الخيار ${label} (أو صورة فقط)`}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => { setCurrentMathField({ type: 'exam', index, field: optKey }); setTempLatex(''); setShowMathEditor(true); }}
+                                  className="px-2 py-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition shrink-0"
+                                  title="إضافة معادلة"
+                                >
+                                  ∑
+                                </button>
+                              </div>
+                              <div>
+                                <label className="block text-xs text-gray-600 mb-1 text-right">🖼 صورة الخيار {label} (اختياري)</label>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="w-full text-sm"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    if (file.size > 5 * 1024 * 1024) {
+                                      alert('حجم الصورة كبير جداً! الحد الأقصى 5MB');
+                                      e.target.value = '';
+                                      return;
+                                    }
+                                    patchExamQuestionAt(index, { [imgFileKey]: file } as Partial<Question>);
+                                  }}
+                                />
+                                {(question as any)[imgFileKey] && (
+                                  <div className="mt-2 relative inline-block">
+                                    <img src={URL.createObjectURL((question as any)[imgFileKey])} alt="" className="max-h-24 rounded border" />
+                                    <button
+                                      type="button"
+                                      onClick={() => patchExamQuestionAt(index, { [imgFileKey]: null } as Partial<Question>)}
+                                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                )}
+                                {question[imgUrlKey] && !(question as any)[imgFileKey] && (
+                                  <div className="mt-2 relative inline-block">
+                                    <img src={question[imgUrlKey] as string} alt="" className="max-h-24 rounded border" />
+                                    <button
+                                      type="button"
+                                      onClick={() => patchExamQuestionAt(index, { [imgUrlKey]: '' } as Partial<Question>)}
+                                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs"
+                                    >
+                                      ✕
+                                    </button>
+                                    <p className="text-xs text-green-600 mt-1">✓ صورة محفوظة</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
 
                       <div>
