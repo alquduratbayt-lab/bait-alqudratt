@@ -605,9 +605,14 @@ export default function LessonsPage() {
             if (q[`option_${letter}_image_file`]) {
               const f = q[`option_${letter}_image_file`] as File;
               const fileName = `question-options/${Date.now()}_${qIdx}_${letter}_${Math.random().toString(36).slice(2, 10)}_${f.name.replace(/\s/g, '_')}`;
+              console.log(`[UPLOAD] Uploading option ${letter.toUpperCase()} image: ${fileName}, size: ${f.size}, type: ${f.type}`);
               const { error: upErr } = await supabase.storage.from('videos').upload(fileName, f);
-              if (!upErr) {
+              if (upErr) {
+                console.error(`[UPLOAD ERROR] Option ${letter.toUpperCase()}:`, upErr.message, upErr);
+                alert(`فشل رفع صورة الخيار ${letter.toUpperCase()}: ${upErr.message}`);
+              } else {
                 u = supabase.storage.from('videos').getPublicUrl(fileName).data.publicUrl;
+                console.log(`[UPLOAD OK] Option ${letter.toUpperCase()} URL: ${u}`);
               }
             }
             optionImageUrls[letter] = u;
@@ -713,9 +718,14 @@ export default function LessonsPage() {
             if (q[`option_${letter}_image_file`]) {
               const f = q[`option_${letter}_image_file`] as File;
               const fileName = `exam-option-images/${Date.now()}_${qIdx}_${letter}_${Math.random().toString(36).slice(2, 10)}_${f.name.replace(/\s/g, '_')}`;
+              console.log(`[UPLOAD] Uploading exam option ${letter.toUpperCase()} image: ${fileName}, size: ${f.size}, type: ${f.type}`);
               const { error: upErr } = await supabase.storage.from('videos').upload(fileName, f);
-              if (!upErr) {
+              if (upErr) {
+                console.error(`[UPLOAD ERROR] Exam option ${letter.toUpperCase()}:`, upErr.message, upErr);
+                alert(`فشل رفع صورة خيار الامتحان ${letter.toUpperCase()}: ${upErr.message}`);
+              } else {
                 u = supabase.storage.from('videos').getPublicUrl(fileName).data.publicUrl;
+                console.log(`[UPLOAD OK] Exam option ${letter.toUpperCase()} URL: ${u}`);
               }
             }
             optionImageUrls[letter] = u;
