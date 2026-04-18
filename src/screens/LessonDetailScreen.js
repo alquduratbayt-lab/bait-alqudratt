@@ -533,6 +533,10 @@ export default function LessonDetailScreen({ navigation, route }) {
             option_b: q.option_b,
             option_c: q.option_c,
             option_d: q.option_d,
+            option_a_image_url: q.option_a_image_url || null,
+            option_b_image_url: q.option_b_image_url || null,
+            option_c_image_url: q.option_c_image_url || null,
+            option_d_image_url: q.option_d_image_url || null,
             correct_answer: q.correct_answer,
             show_at_time: q.show_at_time
           },
@@ -546,6 +550,10 @@ export default function LessonDetailScreen({ navigation, route }) {
             option_b: v.options ? v.options[1] : v.option_b,
             option_c: v.options ? v.options[2] : v.option_c,
             option_d: v.options ? v.options[3] : v.option_d,
+            option_a_image_url: q.option_a_image_url || null,
+            option_b_image_url: q.option_b_image_url || null,
+            option_c_image_url: q.option_c_image_url || null,
+            option_d_image_url: q.option_d_image_url || null,
             correct_answer: v.options ? ['A', 'B', 'C', 'D'][v.correct_answer] : v.correct_answer,
             show_at_time: q.show_at_time
           }))

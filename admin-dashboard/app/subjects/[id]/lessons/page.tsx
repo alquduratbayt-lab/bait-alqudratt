@@ -42,6 +42,64 @@ interface Question {
   show_at_time: number;
 }
 
+/** بعد جلب الأسئلة من Supabase: ضبط حقول نصية/روابط وإفراغ ملفات الرفع حتى تظهر معاينة صور الخيارات المحفوظة */
+function normalizeQuestionRowFromDb(row: Record<string, unknown>): Question {
+  const r = row as Record<string, unknown>;
+  const optImg = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : '');
+  return {
+    ...r,
+    question_text: String(r.question_text ?? ''),
+    question_image_url: typeof r.question_image_url === 'string' ? r.question_image_url : '',
+    option_a: String(r.option_a ?? ''),
+    option_b: String(r.option_b ?? ''),
+    option_c: String(r.option_c ?? ''),
+    option_d: String(r.option_d ?? ''),
+    option_a_image_url: optImg(r.option_a_image_url),
+    option_b_image_url: optImg(r.option_b_image_url),
+    option_c_image_url: optImg(r.option_c_image_url),
+    option_d_image_url: optImg(r.option_d_image_url),
+    correct_answer: String(r.correct_answer ?? 'A'),
+    show_at_time: typeof r.show_at_time === 'number' ? r.show_at_time : Number(r.show_at_time ?? 0),
+    question_image_file: null,
+    option_a_image_file: null,
+    option_b_image_file: null,
+    option_c_image_file: null,
+    option_d_image_file: null,
+    equation_latex: r.equation_latex != null ? String(r.equation_latex) : undefined,
+    equation_image_url: r.equation_image_url != null ? String(r.equation_image_url) : undefined,
+  } as Question;
+}
+
+function getOptionImageUrlForLetter(q: Question, letter: 'a' | 'b' | 'c' | 'd'): string {
+  switch (letter) {
+    case 'a':
+      return (q.option_a_image_url || '').trim();
+    case 'b':
+      return (q.option_b_image_url || '').trim();
+    case 'c':
+      return (q.option_c_image_url || '').trim();
+    case 'd':
+      return (q.option_d_image_url || '').trim();
+    default:
+      return '';
+  }
+}
+
+function getOptionImageFileForLetter(q: Question, letter: 'a' | 'b' | 'c' | 'd'): File | null | undefined {
+  switch (letter) {
+    case 'a':
+      return q.option_a_image_file;
+    case 'b':
+      return q.option_b_image_file;
+    case 'c':
+      return q.option_c_image_file;
+    case 'd':
+      return q.option_d_image_file;
+    default:
+      return undefined;
+  }
+}
+
 export default function LessonsPage() {
   const router = useRouter();
   const params = useParams();
@@ -312,7 +370,7 @@ export default function LessonsPage() {
       const selected = shuffled.slice(0, Math.min(autoExamQuestionsCount, allQuestions.length));
 
       // تحويل إلى صيغة أسئلة الامتحان
-      const newExamQuestions = selected.map(q => ({
+      const newExamQuestions = selected.map((q: any) => ({
         question_text: q.question_text,
         question_image_url: q.question_image_url,
         question_image_file: null,
@@ -322,6 +380,14 @@ export default function LessonsPage() {
         option_b: q.option_b,
         option_c: q.option_c,
         option_d: q.option_d,
+        option_a_image_url: q.option_a_image_url || '',
+        option_b_image_url: q.option_b_image_url || '',
+        option_c_image_url: q.option_c_image_url || '',
+        option_d_image_url: q.option_d_image_url || '',
+        option_a_image_file: null,
+        option_b_image_file: null,
+        option_c_image_file: null,
+        option_d_image_file: null,
         correct_answer: q.correct_answer,
         show_at_time: 0
       }));
@@ -938,7 +1004,7 @@ export default function LessonsPage() {
                               .eq('lesson_id', lesson.id)
                               .order('show_at_time');
                             if (questionsError) throw questionsError;
-                            setQuestions(questionsData || []);
+                            setQuestions((questionsData || []).map((row) => normalizeQuestionRowFromDb(row as Record<string, unknown>)));
                             
                             const { data: examData, error: examError } = await supabase
                               .from('exam_questions')
@@ -946,7 +1012,7 @@ export default function LessonsPage() {
                               .eq('lesson_id', lesson.id)
                               .order('created_at');
                             if (examError) throw examError;
-                            setExamQuestions(examData || []);
+                            setExamQuestions((examData || []).map((row) => normalizeQuestionRowFromDb(row as Record<string, unknown>)));
                           } catch (error) {
                             console.error('Error fetching questions:', error);
                           }
@@ -1242,15 +1308,16 @@ export default function LessonsPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {(['a', 'b', 'c', 'd'] as const).map((letter) => {
                           const optKey = `option_${letter}` as 'option_a' | 'option_b' | 'option_c' | 'option_d';
-                          const imgUrlKey = `option_${letter}_image_url` as keyof Question;
                           const imgFileKey = `option_${letter}_image_file` as keyof Question;
                           const label = letter.toUpperCase();
+                          const savedImgUrl = getOptionImageUrlForLetter(question, letter);
+                          const pendingFile = getOptionImageFileForLetter(question, letter);
                           return (
                             <div key={letter} className="border border-gray-100 rounded-lg p-3 space-y-2 bg-gray-50/50">
                               <div className="flex gap-2">
                                 <input
                                   type="text"
-                                  value={question[optKey]}
+                                  value={question[optKey] ?? ''}
                                   onChange={(e) => updateQuestion(index, optKey, e.target.value)}
                                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold"
                                   placeholder={`نص الخيار ${label} (أو اتركه فارغاً إذا كانت الصورة فقط)`}
@@ -1281,9 +1348,9 @@ export default function LessonsPage() {
                                     patchQuestionAt(index, { [imgFileKey]: file } as Partial<Question>);
                                   }}
                                 />
-                                {(question as any)[imgFileKey] && (
+                                {pendingFile && (
                                   <div className="mt-2 relative inline-block">
-                                    <img src={URL.createObjectURL((question as any)[imgFileKey])} alt="" className="max-h-24 rounded border" />
+                                    <img src={URL.createObjectURL(pendingFile)} alt="" className="max-h-24 rounded border" />
                                     <button
                                       type="button"
                                       onClick={() => patchQuestionAt(index, { [imgFileKey]: null } as Partial<Question>)}
@@ -1293,19 +1360,19 @@ export default function LessonsPage() {
                                     </button>
                                   </div>
                                 )}
-                                {question[imgUrlKey] && !(question as any)[imgFileKey] && (
+                                {!pendingFile && savedImgUrl ? (
                                   <div className="mt-2 relative inline-block">
-                                    <img src={question[imgUrlKey] as string} alt="" className="max-h-24 rounded border" />
+                                    <img src={savedImgUrl} alt="" className="max-h-24 rounded border" />
                                     <button
                                       type="button"
-                                      onClick={() => patchQuestionAt(index, { [imgUrlKey]: '' } as Partial<Question>)}
+                                      onClick={() => patchQuestionAt(index, { [`option_${letter}_image_url`]: '' } as Partial<Question>)}
                                       className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs"
                                     >
                                       ✕
                                     </button>
                                     <p className="text-xs text-green-600 mt-1">✓ صورة محفوظة</p>
                                   </div>
-                                )}
+                                ) : null}
                               </div>
                             </div>
                           );
@@ -1477,15 +1544,16 @@ export default function LessonsPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {(['a', 'b', 'c', 'd'] as const).map((letter) => {
                           const optKey = `option_${letter}` as 'option_a' | 'option_b' | 'option_c' | 'option_d';
-                          const imgUrlKey = `option_${letter}_image_url` as keyof Question;
                           const imgFileKey = `option_${letter}_image_file` as keyof Question;
                           const label = letter.toUpperCase();
+                          const savedImgUrl = getOptionImageUrlForLetter(question, letter);
+                          const pendingFile = getOptionImageFileForLetter(question, letter);
                           return (
                             <div key={letter} className="border border-purple-100 rounded-lg p-3 space-y-2 bg-white">
                               <div className="flex gap-2">
                                 <input
                                   type="text"
-                                  value={question[optKey]}
+                                  value={question[optKey] ?? ''}
                                   onChange={(e) => updateExamQuestion(index, optKey, e.target.value)}
                                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-right placeholder:text-gray-900 placeholder:font-bold text-gray-900 font-bold"
                                   placeholder={`نص الخيار ${label} (أو صورة فقط)`}
@@ -1516,9 +1584,9 @@ export default function LessonsPage() {
                                     patchExamQuestionAt(index, { [imgFileKey]: file } as Partial<Question>);
                                   }}
                                 />
-                                {(question as any)[imgFileKey] && (
+                                {pendingFile && (
                                   <div className="mt-2 relative inline-block">
-                                    <img src={URL.createObjectURL((question as any)[imgFileKey])} alt="" className="max-h-24 rounded border" />
+                                    <img src={URL.createObjectURL(pendingFile)} alt="" className="max-h-24 rounded border" />
                                     <button
                                       type="button"
                                       onClick={() => patchExamQuestionAt(index, { [imgFileKey]: null } as Partial<Question>)}
@@ -1528,19 +1596,19 @@ export default function LessonsPage() {
                                     </button>
                                   </div>
                                 )}
-                                {question[imgUrlKey] && !(question as any)[imgFileKey] && (
+                                {!pendingFile && savedImgUrl ? (
                                   <div className="mt-2 relative inline-block">
-                                    <img src={question[imgUrlKey] as string} alt="" className="max-h-24 rounded border" />
+                                    <img src={savedImgUrl} alt="" className="max-h-24 rounded border" />
                                     <button
                                       type="button"
-                                      onClick={() => patchExamQuestionAt(index, { [imgUrlKey]: '' } as Partial<Question>)}
+                                      onClick={() => patchExamQuestionAt(index, { [`option_${letter}_image_url`]: '' } as Partial<Question>)}
                                       className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs"
                                     >
                                       ✕
                                     </button>
                                     <p className="text-xs text-green-600 mt-1">✓ صورة محفوظة</p>
                                   </div>
-                                )}
+                                ) : null}
                               </div>
                             </div>
                           );
