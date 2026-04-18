@@ -245,15 +245,16 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="ادخل كلمة المرور"
-                    className="w-full px-4 py-4 pr-12 border-2 border-gray-200 rounded-xl text-lg focus:border-[#1a5f7a] focus:outline-none transition-colors text-left placeholder:text-gray-400"
+                    className="w-full py-4 pl-12 pr-12 border-2 border-gray-200 rounded-xl text-lg focus:border-[#1a5f7a] focus:outline-none transition-colors text-left placeholder:text-gray-400"
                     dir="ltr"
                     disabled={loading}
                   />
-                  <Lock className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1a5f7a]" />
+                  <Lock className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#1a5f7a] pointer-events-none" />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1a5f7a] hover:text-[#134a5e]"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-[#1a5f7a] hover:text-[#134a5e] hover:bg-gray-100"
+                    aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>

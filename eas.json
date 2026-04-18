@@ -19,6 +19,13 @@
         "buildConfiguration": "Release"
       },
       "channel": "production"
+    },
+    "apk": {
+      "android": {
+        "buildType": "apk"
+      },
+      "distribution": "internal",
+      "channel": "production"
     }
   },
   "submit": {
