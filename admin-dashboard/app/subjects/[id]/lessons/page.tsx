@@ -604,7 +604,8 @@ export default function LessonsPage() {
             let u: string | null = q[`option_${letter}_image_url`] || null;
             if (q[`option_${letter}_image_file`]) {
               const f = q[`option_${letter}_image_file`] as File;
-              const fileName = `question-options/${Date.now()}_${qIdx}_${letter}_${Math.random().toString(36).slice(2, 10)}_${f.name.replace(/\s/g, '_')}`;
+              const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_+/g, '_');
+              const fileName = `question-options/${Date.now()}_${qIdx}_${letter}_${safeName}`;
               console.log(`[UPLOAD] Uploading option ${letter.toUpperCase()} image: ${fileName}, size: ${f.size}, type: ${f.type}`);
               const { error: upErr } = await supabase.storage.from('videos').upload(fileName, f);
               if (upErr) {
@@ -717,7 +718,8 @@ export default function LessonsPage() {
             let u: string | null = q[`option_${letter}_image_url`] || null;
             if (q[`option_${letter}_image_file`]) {
               const f = q[`option_${letter}_image_file`] as File;
-              const fileName = `exam-option-images/${Date.now()}_${qIdx}_${letter}_${Math.random().toString(36).slice(2, 10)}_${f.name.replace(/\s/g, '_')}`;
+              const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_+/g, '_');
+              const fileName = `exam-option-images/${Date.now()}_${qIdx}_${letter}_${safeName}`;
               console.log(`[UPLOAD] Uploading exam option ${letter.toUpperCase()} image: ${fileName}, size: ${f.size}, type: ${f.type}`);
               const { error: upErr } = await supabase.storage.from('videos').upload(fileName, f);
               if (upErr) {
