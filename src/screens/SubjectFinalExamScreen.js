@@ -9,14 +9,12 @@ import {
   SafeAreaView,
   Image,
   Alert,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { supabase } from '../lib/supabase';
 import HtmlRenderer from '../components/HtmlRenderer';
-
-const { width } = Dimensions.get('window');
 
 function hasOptionTextContent(html) {
   if (!html) return false;
@@ -37,6 +35,10 @@ export default function SubjectFinalExamScreen({ navigation, route }) {
   const [showResults, setShowResults] = useState(false);
   const [results, setResults] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const { width: layoutW } = useWindowDimensions();
+  const finalExamQuestionHtmlW = Math.max(layoutW - 40, 200);
+  const finalExamOptionHtmlW = Math.max(layoutW - 136, 120);
 
   useEffect(() => {
     fetchExamData();
@@ -564,7 +566,7 @@ export default function SubjectFinalExamScreen({ navigation, route }) {
         )}
         
         {currentQuestion.question_text && currentQuestion.question_text.trim() !== '' && (
-          <HtmlRenderer html={currentQuestion.question_text} style={styles.questionText} />
+          <HtmlRenderer html={currentQuestion.question_text} style={styles.questionText} contentWidth={finalExamQuestionHtmlW} />
         )}
         
         {/* عرض صورة السؤال بعد النص إذا كان هناك نص */}
@@ -592,8 +594,10 @@ export default function SubjectFinalExamScreen({ navigation, route }) {
                 style={[styles.optionButton, isSelected && styles.optionButtonSelected]}
                 onPress={() => handleSelectAnswer(option)}
               >
-                <View style={[styles.optionCircle, isSelected && styles.optionCircleSelected]}>
-                  <Text style={[styles.optionLetter, isSelected && styles.optionLetterSelected]}>{arabicNumbers[index]}</Text>
+                <View style={styles.optionSideCol}>
+                  <View style={[styles.optionCircle, isSelected && styles.optionCircleSelected]}>
+                    <Text style={[styles.optionLetter, isSelected && styles.optionLetterSelected]}>{arabicNumbers[index]}</Text>
+                  </View>
                 </View>
                 <View style={styles.optionContentCol}>
                   {optionImageUrl ? (
@@ -606,14 +610,16 @@ export default function SubjectFinalExamScreen({ navigation, route }) {
                   {showText ? (
                     <HtmlRenderer
                       html={optionHtml}
+                      contentWidth={finalExamOptionHtmlW}
                       style={[
-                        styles.optionText,
+                        styles.optionHtmlText,
                         isSelected && styles.optionTextSelected,
-                        optionImageUrl ? { marginTop: 8 } : null
+                        optionImageUrl ? { marginTop: 4 } : null
                       ]}
                     />
                   ) : null}
                 </View>
+                <View style={styles.optionSideCol} />
               </TouchableOpacity>
             );
           })}
@@ -748,8 +754,8 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   optionButton: {
-    flexDirection: 'row-reverse',
-    alignItems: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#fff',
     padding: 16,
     borderRadius: 12,
@@ -761,14 +767,23 @@ const styles = StyleSheet.create({
     borderColor: '#6366f1',
     backgroundColor: '#eef2ff',
   },
+  optionSideCol: {
+    width: 40,
+    minHeight: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   optionContentCol: {
     flex: 1,
-    alignItems: 'flex-end',
+    minWidth: 0,
+    alignItems: 'center',
   },
   optionChoiceImage: {
-    width: width - 100,
+    width: '88%',
     maxWidth: '100%',
-    height: 120,
+    height: 82,
+    borderRadius: 8,
+    alignSelf: 'center',
   },
   optionCircle: {
     width: 32,
@@ -777,7 +792,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3f4f6',
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 12,
   },
   optionCircleSelected: {
     backgroundColor: '#6366f1',
@@ -795,6 +809,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     textAlign: 'right',
+  },
+  optionHtmlText: {
+    fontSize: 16,
+    color: '#333',
+    alignSelf: 'stretch',
+    width: '100%',
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
   optionTextSelected: {
     color: '#6366f1',

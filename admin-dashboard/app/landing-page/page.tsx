@@ -36,6 +36,7 @@ interface ContactInfo {
   instagram?: string;
   twitter?: string;
   tiktok?: string;
+  snapchat?: string;
 }
 
 interface Feature {
@@ -105,7 +106,8 @@ export default function LandingPageManagement() {
     whatsapp: '',
     instagram: '',
     twitter: '',
-    tiktok: ''
+    tiktok: '',
+    snapchat: ''
   });
 
   // Site Settings
@@ -907,6 +909,16 @@ export default function LandingPageManagement() {
                     onChange={(e) => setContact({ ...contact, tiktok: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                     placeholder="@baitalqudrat"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Snapchat</label>
+                  <input
+                    type="text"
+                    value={contact.snapchat || ''}
+                    onChange={(e) => setContact({ ...contact, snapchat: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    placeholder="https://snapchat.com/add/username أو اسم المستخدم"
                   />
                 </div>
               </div>

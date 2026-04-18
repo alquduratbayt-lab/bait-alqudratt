@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Image,
   Animated,
+  useWindowDimensions,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Path, Circle, Rect, Polygon } from 'react-native-svg';
@@ -185,6 +186,10 @@ export default function ExamScreen({ navigation, route }) {
   const [questionLoading, setQuestionLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const { width: layoutW } = useWindowDimensions();
+  const examQuestionHtmlW = Math.max(layoutW - 80, 200);
+  const examOptionHtmlW = Math.max(layoutW - 174, 120);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -472,7 +477,7 @@ export default function ExamScreen({ navigation, route }) {
             
             {/* عرض نص السؤال إذا كان موجوداً */}
             {currentQuestion.question_text && currentQuestion.question_text.trim() !== '' && (
-              <HtmlRenderer html={currentQuestion.question_text} style={styles.questionText} />
+              <HtmlRenderer html={currentQuestion.question_text} style={styles.questionText} contentWidth={examQuestionHtmlW} />
             )}
             
             {/* عرض صورة السؤال بعد النص إذا كان هناك نص */}
@@ -497,37 +502,42 @@ export default function ExamScreen({ navigation, route }) {
                     style={[
                       styles.optionButton,
                       selectedAnswer === option && styles.optionButtonSelected,
-                      { flexDirection: 'row-reverse', justifyContent: 'flex-end' }
                     ]}
                     onPress={() => setSelectedAnswer(option)}
                   >
-                    <View style={{ flexDirection: 'row-reverse', alignItems: 'center', flex: 1 }}>
+                    <View style={styles.optionSideCol}>
+                      <View style={[
+                        styles.optionCircle,
+                        selectedAnswer === option && styles.optionCircleSelected,
+                      ]} />
+                    </View>
+                    <View style={styles.optionCenterCol}>
+                      {optionImageUrl ? (
+                        <Image
+                          source={{ uri: optionImageUrl }}
+                          style={styles.optionChoiceImage}
+                          resizeMode="contain"
+                        />
+                      ) : null}
+                      {showText ? (
+                        <HtmlRenderer 
+                          html={optionHtml} 
+                          contentWidth={examOptionHtmlW}
+                          style={[
+                            styles.optionHtmlText,
+                            selectedAnswer === option && styles.optionTextSelected,
+                            optionImageUrl ? { marginTop: 4 } : null
+                          ]} 
+                        />
+                      ) : null}
+                    </View>
+                    <View style={styles.optionSideCol}>
                       <Text style={[
-                        styles.optionText,
+                        styles.optionLetterLabel,
                         selectedAnswer === option && styles.optionTextSelected,
-                        { fontWeight: 'bold', marginLeft: 10, fontSize: 18 }
                       ]}>
                         {arabicLetters[index]}.
                       </Text>
-                      <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                        {optionImageUrl ? (
-                          <Image
-                            source={{ uri: optionImageUrl }}
-                            style={styles.optionChoiceImage}
-                            resizeMode="contain"
-                          />
-                        ) : null}
-                        {showText ? (
-                          <HtmlRenderer 
-                            html={optionHtml} 
-                            style={[
-                              styles.optionText,
-                              selectedAnswer === option && styles.optionTextSelected,
-                              optionImageUrl ? { marginTop: 8 } : null
-                            ]} 
-                          />
-                        ) : null}
-                      </View>
                     </View>
                   </TouchableOpacity>
                 );
@@ -648,13 +658,29 @@ const styles = StyleSheet.create({
     borderColor: '#10b981',
     backgroundColor: '#d1fae5',
   },
+  optionSideCol: {
+    width: 32,
+    minHeight: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  optionCenterCol: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
+  },
+  optionLetterLabel: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+  },
   optionCircle: {
     width: 20,
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
     borderColor: '#999',
-    marginLeft: 10,
   },
   optionCircleSelected: {
     borderColor: '#10b981',
@@ -666,14 +692,24 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'right',
   },
+  optionHtmlText: {
+    fontSize: 15,
+    color: '#333',
+    alignSelf: 'stretch',
+    width: '100%',
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
   optionTextSelected: {
     color: '#10b981',
     fontWeight: '600',
   },
   optionChoiceImage: {
-    width: '100%',
-    height: 120,
-    alignSelf: 'flex-end',
+    width: '88%',
+    maxWidth: '100%',
+    height: 82,
+    borderRadius: 8,
+    alignSelf: 'center',
   },
   nextButton: {
     backgroundColor: '#10b981',

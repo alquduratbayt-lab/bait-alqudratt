@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Dimensions, Alert, Image, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Dimensions, Alert, Image, SafeAreaView, useWindowDimensions } from 'react-native';
 import { Video, Audio } from 'expo-av';
 import { WebView } from 'react-native-webview';
 import { StatusBar } from 'expo-status-bar';
@@ -154,6 +154,10 @@ export default function LessonDetailScreen({ navigation, route }) {
   const hasRestoredPosition = useRef(false);
   const videoStatusRef = useRef({});
   const isNavigating = useRef(false);
+
+  const { width: layoutW } = useWindowDimensions();
+  const questionHtmlWidth = Math.max(layoutW - 40, 200);
+  const optionHtmlContentWidth = Math.max(layoutW - 40 - 30 - 64, 120);
 
   // إعداد الصوت ليعمل في وضع الصامت
   useEffect(() => {
@@ -964,7 +968,7 @@ export default function LessonDetailScreen({ navigation, route }) {
               {questionResults.filter(r => r.isCorrect).map((result, index) => (
                 <View key={index} style={styles.questionResultCard}>
                   {result.question.question_text && result.question.question_text.trim() !== '' && (
-                    <HtmlRenderer html={result.question.question_text} style={styles.questionResultText} />
+                    <HtmlRenderer html={result.question.question_text} style={styles.questionResultText} contentWidth={questionHtmlWidth} />
                   )}
                   {result.question.question_image_url && (
                     <Image 
@@ -979,7 +983,7 @@ export default function LessonDetailScreen({ navigation, route }) {
                         <Path d="M20 6L9 17l-5-5" stroke="#22c55e" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
                       </Svg>
                     </View>
-                    <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                    <View style={{ flex: 1, alignItems: 'center' }}>
                       {result.question[`option_${result.userAnswer.toLowerCase()}_image_url`] ? (
                         <Image
                           source={{ uri: result.question[`option_${result.userAnswer.toLowerCase()}_image_url`] }}
@@ -988,7 +992,7 @@ export default function LessonDetailScreen({ navigation, route }) {
                         />
                       ) : null}
                       {hasOptionTextContent(result.question[`option_${result.userAnswer.toLowerCase()}`]) ? (
-                        <HtmlRenderer html={result.question[`option_${result.userAnswer.toLowerCase()}`]} style={styles.answerText} />
+                        <HtmlRenderer html={result.question[`option_${result.userAnswer.toLowerCase()}`]} style={styles.answerText} contentWidth={optionHtmlContentWidth} />
                       ) : null}
                     </View>
                   </View>
@@ -1017,7 +1021,7 @@ export default function LessonDetailScreen({ navigation, route }) {
                   </View>
                   <View style={{ width: '100%' }}>
                     {result.question.question_text && result.question.question_text.trim() !== '' && (
-                      <HtmlRenderer html={result.question.question_text} style={styles.questionResultText} />
+                      <HtmlRenderer html={result.question.question_text} style={styles.questionResultText} contentWidth={questionHtmlWidth} />
                     )}
                     {result.question.question_image_url && (
                       <Image 
@@ -1033,7 +1037,7 @@ export default function LessonDetailScreen({ navigation, route }) {
                         <Path d="M18 6L6 18M6 6l12 12" stroke="#ef4444" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
                       </Svg>
                     </View>
-                    <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                    <View style={{ flex: 1, alignItems: 'center' }}>
                       {result.question[`option_${result.userAnswer.toLowerCase()}_image_url`] ? (
                         <Image
                           source={{ uri: result.question[`option_${result.userAnswer.toLowerCase()}_image_url`] }}
@@ -1042,7 +1046,7 @@ export default function LessonDetailScreen({ navigation, route }) {
                         />
                       ) : null}
                       {hasOptionTextContent(result.question[`option_${result.userAnswer.toLowerCase()}`]) ? (
-                        <HtmlRenderer html={result.question[`option_${result.userAnswer.toLowerCase()}`]} style={styles.answerText} />
+                        <HtmlRenderer html={result.question[`option_${result.userAnswer.toLowerCase()}`]} style={styles.answerText} contentWidth={optionHtmlContentWidth} />
                       ) : null}
                     </View>
                   </View>
@@ -1227,6 +1231,7 @@ export default function LessonDetailScreen({ navigation, route }) {
               <HtmlRenderer 
                 html={currentQuestion.question_text} 
                 style={styles.questionText}
+                contentWidth={questionHtmlWidth}
               />
             )}
             
@@ -1252,43 +1257,43 @@ export default function LessonDetailScreen({ navigation, route }) {
                     style={[
                       styles.optionButton,
                       selectedAnswer === option && styles.optionButtonSelected,
-                      { flexDirection: 'row-reverse', justifyContent: 'flex-end' }
                     ]}
                     onPress={() => setSelectedAnswer(option)}
                   >
-                    <View style={{ flexDirection: 'row-reverse', alignItems: 'center', flex: 1 }}>
+                    <View style={styles.optionSideCol}>
+                      <View style={[
+                        styles.optionCircle,
+                        selectedAnswer === option && styles.optionCircleSelected,
+                      ]} />
+                    </View>
+                    <View style={styles.optionCenterCol}>
+                      {optionImageUrl ? (
+                        <Image
+                          source={{ uri: optionImageUrl }}
+                          style={styles.optionChoiceImage}
+                          resizeMode="contain"
+                        />
+                      ) : null}
+                      {showText ? (
+                        <HtmlRenderer 
+                          html={optionHtml}
+                          contentWidth={optionHtmlContentWidth}
+                          style={[
+                            styles.optionHtmlText,
+                            selectedAnswer === option && styles.optionTextSelected,
+                            optionImageUrl ? { marginTop: 4 } : null
+                          ]}
+                        />
+                      ) : null}
+                    </View>
+                    <View style={styles.optionSideCol}>
                       <Text style={[
-                        styles.optionText,
+                        styles.optionLetterLabel,
                         selectedAnswer === option && styles.optionTextSelected,
-                        { fontWeight: 'bold', marginLeft: 10, fontSize: 18 }
                       ]}>
                         {arabicLetters[index]}.
                       </Text>
-                      <View style={{ flex: 1, justifyContent: 'center' }}>
-                        {optionImageUrl ? (
-                          <Image
-                            source={{ uri: optionImageUrl }}
-                            style={styles.optionChoiceImage}
-                            resizeMode="contain"
-                          />
-                        ) : null}
-                        {showText ? (
-                          <HtmlRenderer 
-                            html={optionHtml}
-                            style={[
-                              styles.optionText,
-                              selectedAnswer === option && styles.optionTextSelected,
-                              optionImageUrl ? { marginTop: 8 } : null
-                            ]}
-                          />
-                        ) : null}
-                      </View>
                     </View>
-                    <View style={[
-                      styles.optionCircle,
-                      selectedAnswer === option && styles.optionCircleSelected,
-                      { marginRight: 0, marginLeft: 10 }
-                    ]} />
                   </TouchableOpacity>
                 );
               })}
@@ -1822,13 +1827,29 @@ const styles = StyleSheet.create({
     borderColor: '#2196F3',
     backgroundColor: '#e3f2fd',
   },
+  optionSideCol: {
+    width: 32,
+    minHeight: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  optionCenterCol: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
+  },
+  optionLetterLabel: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+  },
   optionCircle: {
     width: 20,
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
     borderColor: '#999',
-    marginLeft: 10,
   },
   optionCircleSelected: {
     borderColor: '#2196F3',
@@ -1840,15 +1861,24 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'right',
   },
+  optionHtmlText: {
+    fontSize: 15,
+    color: '#333',
+    alignSelf: 'stretch',
+    width: '100%',
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
   optionTextSelected: {
     color: '#2196F3',
     fontWeight: '600',
   },
   optionChoiceImage: {
-    width: '100%',
-    maxWidth: width - 80,
-    height: 120,
-    alignSelf: 'flex-end',
+    width: '88%',
+    maxWidth: '100%',
+    height: 82,
+    borderRadius: 8,
+    alignSelf: 'center',
   },
   submitButton: {
     backgroundColor: '#2196F3',
@@ -1976,16 +2006,19 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   answerResultOptionImage: {
-    width: '100%',
-    maxWidth: width - 80,
-    height: 100,
+    width: '85%',
+    maxWidth: '100%',
+    height: 88,
     marginBottom: 6,
+    alignSelf: 'center',
   },
   answerText: {
-    flex: 1,
+    alignSelf: 'stretch',
+    width: '100%',
     fontSize: 14,
     color: '#666',
     textAlign: 'right',
+    writingDirection: 'rtl',
   },
   examButton: {
     flexDirection: 'row',

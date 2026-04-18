@@ -7,11 +7,9 @@ import MathSquareRoot from './MathSquareRoot';
 import MathPower from './MathPower';
 import MathRenderer from './MathRenderer';
 
-export default function HtmlRenderer({ html, style }) {
+export default function HtmlRenderer({ html, style, contentWidth: contentWidthOverride }) {
   const { width } = useWindowDimensions();
-
-  // DEBUG
-  console.log('🔍 HtmlRenderer input:', html);
+  const contentWidth = contentWidthOverride ?? Math.max(width - 40, 200);
 
   // تنظيف HTML من Word fragments والتعليقات
   let cleanHtml = html || '';
@@ -169,8 +167,6 @@ export default function HtmlRenderer({ html, style }) {
   // اكتشاف LaTeX - إما محاط بـ $$ أو يحتوي على أوامر LaTeX
   const hasDoubleDollar = cleanHtml.includes('$$');
   const hasLatexCommands = /\\(frac|sqrt|sum|int|lim|pi|infty|geq|leq|neq|times|div|pm|Delta|alpha|beta|gamma|cdot|left|right)/i.test(cleanHtml);
-  
-  console.log('🔍 hasDoubleDollar:', hasDoubleDollar, 'hasLatexCommands:', hasLatexCommands, 'cleanHtml:', cleanHtml);
   
   // إذا كان يحتوي على أوامر LaTeX بدون $$ - أضفها تلقائياً
   if (!hasDoubleDollar && hasLatexCommands && !cleanHtml.includes('<')) {
@@ -407,7 +403,7 @@ export default function HtmlRenderer({ html, style }) {
   
   // إذا كان النص عادي (ليس HTML)، نعرضه كما هو
   if (!cleanHtml || !cleanHtml.includes('<')) {
-    return <Text style={style}>{cleanHtml}</Text>;
+    return <Text style={[style, { writingDirection: 'rtl' }]}>{cleanHtml}</Text>;
   }
 
   const source = {
@@ -473,11 +469,13 @@ export default function HtmlRenderer({ html, style }) {
   };
 
   return (
-    <RenderHtml
-      contentWidth={width - 40}
-      source={source}
-      tagsStyles={tagsStyles}
-      enableExperimentalMarginCollapsing={true}
-    />
+    <View style={{ width: '100%', alignSelf: 'stretch' }}>
+      <RenderHtml
+        contentWidth={contentWidth}
+        source={source}
+        tagsStyles={tagsStyles}
+        enableExperimentalMarginCollapsing={true}
+      />
+    </View>
   );
 }
